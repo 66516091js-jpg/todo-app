@@ -14,29 +14,54 @@
       display: flex;
       justify-content: center;
     }
+
     .app {
       width: 100%;
       max-width: 480px;
       min-height: 100vh;
       background: #121212;
-      padding: 20px 16px 80px;
+      padding: 20px 16px 60px;
       box-sizing: border-box;
     }
+
     .header {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: bold;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
+
+    .week-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 4px;
+    }
+
+    .day {
+      flex: 1;
+      background: #1e1e1e;
+      border-radius: 12px;
+      text-align: center;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+
+    .day.done {
+      background: #1e88e5;
+    }
+
     .card {
       background: #1e1e1e;
       border-radius: 24px;
       padding: 16px;
     }
+
     .input-row {
       display: flex;
       gap: 10px;
       margin-bottom: 16px;
     }
+
     input {
       flex: 1;
       padding: 14px 16px;
@@ -46,6 +71,7 @@
       background: #2a2a2a;
       color: #fff;
     }
+
     .add-btn {
       padding: 14px 18px;
       border-radius: 18px;
@@ -55,11 +81,13 @@
       background: #1877F2;
       color: #fff;
     }
+
     ul {
       list-style: none;
       padding: 0;
       margin: 0;
     }
+
     li {
       background: #2a2a2a;
       margin-bottom: 10px;
@@ -71,46 +99,36 @@
       font-size: 16px;
       cursor: pointer;
     }
+
     .task-text {
       flex: 1;
-      line-height: 1.3;
+      color: #fff;
     }
+
+    .checked-text {
+      color: #777;
+    }
+
     .right-ui {
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .check {
-      font-size: 18px;
-      color: #4CAF50;
-      min-width: 20px;
-      text-align: center;
-    }
-    .sep {
-      color: #555;
-      font-weight: bold;
-    }
+
     .del-btn {
       background: transparent;
       border: none;
       color: #ff5f5f;
       font-size: 16px;
     }
-    .checked-text {
-      color: #777;
-    }
-    .bottom-info {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 12px;
-      color: #888;
-    }
   </style>
 </head>
 <body>
 
 <div class="app">
-  <div class="header">오늘 할 일</div>
+  <div class="header">이번 주 진행도</div>
+
+  <div class="week-bar" id="weekBar"></div>
 
   <div class="card">
     <div class="input-row">
@@ -119,8 +137,6 @@
     </div>
 
     <ul id="todoList"></ul>
-
-    <div class="bottom-info" id="resetInfo"></div>
   </div>
 </div>
 
@@ -128,30 +144,62 @@
   const listEl = document.getElementById("todoList");
   const inputEl = document.getElementById("todoInput");
   const addBtn = document.getElementById("addBtn");
-  const resetInfo = document.getElementById("resetInfo");
+  const weekBar = document.getElementById("weekBar");
 
   let todos = JSON.parse(localStorage.getItem("todos")) || [];
-  let lastReset = localStorage.getItem("lastResetDate") || "";
+  let history = JSON.parse(localStorage.getItem("history")) || {};
 
-  function getResetDateKey() {
+  const days = ["일","월","화","수","목","금","토"];
+
+  function getTodayKey() {
     const now = new Date();
     if (now.getHours() < 5) now.setDate(now.getDate() - 1);
     return now.toISOString().split("T")[0];
   }
 
-  function dailyResetCheck() {
-    const todayKey = getResetDateKey();
-    if (lastReset !== todayKey) {
-      todos = todos.map(t => ({ text: t.text, done: false }));
-      localStorage.setItem("lastResetDate", todayKey);
-      lastReset = todayKey;
-      saveTodos();
-    }
-    resetInfo.textContent = "매일 오전 5시에 체크 상태가 리셋됩니다";
-  }
-
   function saveTodos() {
     localStorage.setItem("todos", JSON.stringify(todos));
+  }
+
+  function saveHistory() {
+    localStorage.setItem("history", JSON.stringify(history));
+  }
+
+  function updateHistory() {
+    const today = getTodayKey();
+    const total = todos.length;
+    const done = todos.filter(t => t.done).length;
+    history[today] = { done, total };
+    saveHistory();
+  }
+
+  function renderWeekBar() {
+    weekBar.innerHTML = "";
+
+    const today = new Date();
+    const week = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - today.getDay() + i);
+      const key = d.toISOString().split("T")[0];
+      week.push({ key, label: days[d.getDay()] });
+    }
+
+    week.forEach(d => {
+      const data = history[d.key] || { done: 0, total: 0 };
+
+      const div = document.createElement("div");
+      div.className = "day";
+      div.innerHTML = `
+        ${d.label}<br>
+        ${data.done}/${data.total}
+      `;
+      if (data.done === data.total && data.total > 0) {
+        div.classList.add("done");
+      }
+      weekBar.appendChild(div);
+    });
   }
 
   function renderTodos() {
@@ -168,32 +216,32 @@
       right.className = "right-ui";
 
       const check = document.createElement("span");
-      check.className = "check";
       check.textContent = todo.done ? "✅" : "";
 
       const sep = document.createElement("span");
-      sep.className = "sep";
       sep.textContent = "|";
 
       const del = document.createElement("button");
       del.className = "del-btn";
       del.textContent = "❌";
 
-      // ✅ 한 줄 클릭하면 체크 토글
       li.onclick = () => {
         todos[i].done = !todos[i].done;
         saveTodos();
+        updateHistory();
         renderTodos();
+        renderWeekBar();
       };
 
-      // ❌ 삭제는 확인 팝업
       del.onclick = (e) => {
         e.stopPropagation();
-        const ok = confirm("이 할 일을 삭제하시겠습니까?");
+        const ok = confirm("정말 삭제하시겠습니까?");
         if (!ok) return;
         todos.splice(i, 1);
         saveTodos();
+        updateHistory();
         renderTodos();
+        renderWeekBar();
       };
 
       right.appendChild(check);
@@ -212,13 +260,16 @@
     todos.push({ text, done: false });
     inputEl.value = "";
     saveTodos();
+    updateHistory();
     renderTodos();
+    renderWeekBar();
   }
 
   addBtn.addEventListener("click", addTodo);
 
-  dailyResetCheck();
+  updateHistory();
   renderTodos();
+  renderWeekBar();
 </script>
 
 </body>
