@@ -50,25 +50,61 @@
       text-decoration: line-through;
       color: gray;
     }
+    .time-label {
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
 
 <div class="todo-container">
-  <h2>📋 나의 할 일</h2>
+  <h2>📋 오늘의 할 일</h2>
   <div class="input-row">
     <input id="todoInput" placeholder="할 일을 입력하세요">
     <button id="addBtn" type="button">추가</button>
   </div>
   <ul id="todoList"></ul>
+  <div class="time-label" id="resetInfo"></div>
 </div>
 
 <script>
   const listEl = document.getElementById("todoList");
   const inputEl = document.getElementById("todoInput");
   const addBtn = document.getElementById("addBtn");
+  const resetInfo = document.getElementById("resetInfo");
 
   let todos = JSON.parse(localStorage.getItem("todos")) || [];
+  let lastReset = localStorage.getItem("lastResetDate") || "";
+
+  function getResetDateKey() {
+    const now = new Date();
+    // 오전 5시 기준 날짜 계산
+    if (now.getHours() < 5) {
+      now.setDate(now.getDate() - 1);
+    }
+    return now.toISOString().split("T")[0]; // YYYY-MM-DD
+  }
+
+  function checkDailyReset() {
+    const todayKey = getResetDateKey();
+
+    if (lastReset !== todayKey) {
+      // ✅ 5시 기준 새로운 날이면 체크 상태 리셋
+      todos = todos.map(todo => ({
+        text: todo.text,
+        done: false
+      }));
+      saveTodos();
+      localStorage.setItem("lastResetDate", todayKey);
+      lastReset = todayKey;
+    }
+
+    const now = new Date();
+    resetInfo.textContent = `✅ 매일 오전 5시에 체크 상태가 리셋됩니다 (현재 기준일: ${todayKey})`;
+  }
 
   function saveTodos() {
     localStorage.setItem("todos", JSON.stringify(todos));
@@ -106,7 +142,6 @@
   function addTodo() {
     const text = inputEl.value.trim();
     if (!text) return;
-
     todos.push({ text, done: false });
     inputEl.value = "";
     saveTodos();
@@ -115,6 +150,8 @@
 
   addBtn.addEventListener("click", addTodo);
 
+  // ✅ 페이지 열릴 때마다 리셋 확인
+  checkDailyReset();
   renderTodos();
 </script>
 
