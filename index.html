@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Todo</title>
 
 <style>
@@ -39,6 +39,10 @@ color:#4caf50;font-weight:bold
 .actions{display:flex;align-items:center;gap:6px}
 .del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
 
+.chart-bar{
+height:20px;background:#009688;margin:6px 0;border-radius:6px
+}
+
 .modal{
 position:fixed;inset:0;background:rgba(0,0,0,.8);
 display:none;justify-content:center;align-items:center;z-index:999
@@ -61,23 +65,15 @@ background:#1e1e1e;padding:20px;border-radius:16px;width:80%
 <h2>일일 할 일</h2>
 <div class="card">
   <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input id="todoInput" placeholder="할 일 입력">
+    <input id="todoInput" placeholder="할 일 입력"/>
     <button id="addBtn">+</button>
   </div>
   <ul id="todoList"></ul>
 </div>
 
 <h2>지난 주 통계</h2>
-<div id="statsArea"></div>
+<div class="card" id="statsArea"></div>
 
-</div>
-
-<div class="modal" id="modal">
-  <div class="modalBox">
-    <h3 id="modalTitle"></h3>
-    <ul id="modalList"></ul>
-    <button onclick="closeModal()">닫기</button>
-  </div>
 </div>
 
 <script>
@@ -87,55 +83,15 @@ const lastWeekBar=document.getElementById("lastWeekBar");
 const thisWeekBar=document.getElementById("thisWeekBar");
 const listEl=document.getElementById("todoList");
 const inputEl=document.getElementById("todoInput");
-
-const modal=document.getElementById("modal");
-const modalTitle=document.getElementById("modalTitle");
-const modalList=document.getElementById("modalList");
+const statsArea=document.getElementById("statsArea");
 
 let todos=JSON.parse(localStorage.getItem("todos")||"[]");
 let history=JSON.parse(localStorage.getItem("history")||"{}");
-let lastHistory=JSON.parse(localStorage.getItem("lastHistory")||"{}");
-let dayTasks=JSON.parse(localStorage.getItem("dayTasks")||"{}");
-let lastReset=localStorage.getItem("lastReset")||"";
+let lastWeekStats=JSON.parse(localStorage.getItem("lastWeekStats")||"{}");
 
 function todayKey(){
  let d=new Date(); if(d.getHours()<5)d.setDate(d.getDate()-1);
  return d.toISOString().split("T")[0];
-}
-
-function save(){
- localStorage.setItem("todos",JSON.stringify(todos));
- localStorage.setItem("history",JSON.stringify(history));
- localStorage.setItem("lastHistory",JSON.stringify(lastHistory));
- localStorage.setItem("dayTasks",JSON.stringify(dayTasks));
- localStorage.setItem("lastReset",lastReset);
-}
-
-function resetCheck(){
- const key=todayKey();
- if(lastReset===key) return;
-
- const now=new Date();
- const day=now.getDay();
-
- // 매일 오전 5시: 체크만 초기화
- todos.forEach(t=>t.done=false);
-
- // 월요일이면 주간 롤링
- if(day===1){
-   lastHistory={...history};
-   history={};
- }
-
- lastReset=key;
- save();
-}
-
-function updateHistory(){
- const key=todayKey();
- history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
- dayTasks[key]=todos.map(t=>({...t}));
- save();
 }
 
 function getMonday(offsetWeek=0){
@@ -144,39 +100,33 @@ function getMonday(offsetWeek=0){
  d.setDate(d.getDate()+diff+(offsetWeek*7)); return d;
 }
 
+function save(){
+ localStorage.setItem("todos",JSON.stringify(todos));
+ localStorage.setItem("history",JSON.stringify(history));
+ localStorage.setItem("lastWeekStats",JSON.stringify(lastWeekStats));
+}
+
+function updateHistory(){
+ const key=todayKey();
+ history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
+ save();
+}
+
 function renderWeek(bar, offset){
  bar.innerHTML="";
  const m=getMonday(offset);
  for(let i=0;i<7;i++){
   const d=new Date(m);d.setDate(m.getDate()+i);
   const key=d.toISOString().split("T")[0];
-  const data=(offset===-1?lastHistory:history)[key]||{done:0,total:0};
+  const data=history[key]||{done:0,total:0};
 
   const div=document.createElement("div");
   div.className="day";
   div.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
   if(data.done===data.total&&data.total>0)div.classList.add("done");
-  div.onclick=()=>openDetail(key,days[i],offset);
   bar.appendChild(div);
  }
 }
-
-function openDetail(key,label,offset){
- modal.style.display="flex";
- modalTitle.textContent=(offset===-1?"지난 주 ":"이번 주 ")+label+"요일";
-
- modalList.innerHTML="";
- const tasks=dayTasks[key]||[];
- if(tasks.length===0){modalList.innerHTML="<li>기록 없음</li>";return;}
-
- tasks.forEach(t=>{
-  const li=document.createElement("li");
-  li.textContent=t.text+(t.done?" ✅":" ❌");
-  modalList.appendChild(li);
- });
-}
-
-function closeModal(){modal.style.display="none";}
 
 function renderTodos(){
  listEl.innerHTML="";
@@ -185,23 +135,18 @@ function renderTodos(){
   const txt=document.createElement("span"); txt.textContent=t.text;
 
   const actions=document.createElement("div");actions.className="actions";
-
-  const box=document.createElement("div");
-  box.className="checkBox";
+  const box=document.createElement("div");box.className="checkBox";
   if(t.done){box.classList.add("checked");box.textContent="✓";}
-
   const bar=document.createElement("span");bar.textContent="|";
-
   const del=document.createElement("button");
   del.textContent="❌"; del.className="del-btn";
 
   li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render();}
-
   del.onclick=(e)=>{
     e.stopPropagation();
     if(!confirm("삭제하시겠습니까?"))return;
     todos.splice(i,1);updateHistory();render();
-  };
+  }
 
   actions.append(box,bar,del);
   li.append(txt,actions);
@@ -212,60 +157,49 @@ function renderTodos(){
 function addTodo(){
  const t=inputEl.value.trim(); if(!t)return;
  todos.push({text:t,done:false});
- inputEl.value="";updateHistory();render();
+ inputEl.value="";
+ updateHistory();
+ render();
 }
 
 document.getElementById("addBtn").onclick=addTodo;
 
 function renderStats(){
- const area=document.getElementById("statsArea");
- area.innerHTML="";
-
- if(Object.keys(lastHistory).length===0){
-   area.innerHTML="<p style='color:#777'>지난 주 데이터 없음</p>";
-   return;
+ statsArea.innerHTML="";
+ const entries=Object.entries(lastWeekStats);
+ if(entries.length===0){
+  statsArea.innerHTML="<div>지난주 데이터 없음</div>";
+  return;
  }
 
- const counter={};
-
- Object.values(lastHistory).forEach(day=>{
-  (dayTasks[Object.keys(lastHistory)[0]]||[]).forEach(t=>{
-    if(!counter[t.text])counter[t.text]=0;
-    if(t.done)counter[t.text]++;
-  });
- });
-
- Object.keys(counter).forEach(text=>{
-  const row=document.createElement("div");
-  row.style.marginBottom="12px";
-
+ entries.forEach(([name,count])=>{
   const label=document.createElement("div");
-  label.textContent=text;
-
-  const box=document.createElement("div");
-  box.style.background="#222";
-  box.style.borderRadius="8px";
-  box.style.overflow="hidden";
-
+  label.textContent=name+" ("+count+"회)";
   const bar=document.createElement("div");
-  bar.style.height="20px";
-  bar.style.width=(counter[text]*30)+"px";
-  bar.style.background="#4caf50";
-
-  box.appendChild(bar);
-  row.append(label,box);
-  area.appendChild(row);
+  bar.className="chart-bar";
+  bar.style.width=(count*10)+"%";
+  statsArea.append(label,bar);
  });
 }
 
 function render(){
- resetCheck();
  renderWeek(lastWeekBar,-1);
  renderWeek(thisWeekBar,0);
  renderTodos();
  renderStats();
 }
 
+/* ✅ 테스트용 지난주 데이터 자동 삽입 */
+(function createTestStats(){
+ if(Object.keys(lastWeekStats).length>0) return;
+
+ todos.forEach(t=>{
+   lastWeekStats[t.text]=Math.floor(Math.random()*7)+1;
+ });
+ save();
+})();
+
+updateHistory();
 render();
 </script>
 </body>
