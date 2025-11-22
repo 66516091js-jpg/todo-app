@@ -124,7 +124,8 @@
   let todos = JSON.parse(localStorage.getItem("todos")) || [];
   let history = JSON.parse(localStorage.getItem("history")) || {};
 
-  const days = ["일","월","화","수","목","금","토"];
+  // ✅ 월~일 고정
+  const days = ["월","화","수","목","금","토","일"];
 
   function getTodayKey() {
     const now = new Date();
@@ -149,22 +150,32 @@
     saveHistory();
   }
 
+  // ✅ 월요일 시작 기준 주간 바 생성
   function renderWeekBar() {
     weekBar.innerHTML = "";
-    const today = new Date();
+    const now = new Date();
+
+    // 이번 주의 "월요일" 날짜 구하기
+    const day = now.getDay();
+    const monday = new Date(now);
+    const diff = (day === 0 ? -6 : 1) - day;
+    monday.setDate(now.getDate() + diff);
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(today.getDate() - today.getDay() + i);
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+
       const key = d.toISOString().split("T")[0];
       const data = history[key] || { done: 0, total: 0 };
 
       const div = document.createElement("div");
       div.className = "day";
-      div.innerHTML = `${days[d.getDay()]}<br>${data.done}/${data.total}`;
+      div.innerHTML = `${days[i]}<br>${data.done}/${data.total}`;
+
       if (data.done === data.total && data.total > 0) {
         div.classList.add("done");
       }
+
       weekBar.appendChild(div);
     }
   }
