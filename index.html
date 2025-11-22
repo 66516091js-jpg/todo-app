@@ -19,12 +19,22 @@ ul{list-style:none;padding:0;margin:12px 0 0}
 li{
 background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;
 display:flex;justify-content:space-between;align-items:center;
-cursor:grab;user-select:none
+cursor:pointer
 }
 
-li.dragging{opacity:0.4}
+.textBox{flex:1}
 
-.actions{display:flex;gap:4px;align-items:center}
+.actions{
+display:flex;
+align-items:center;
+gap:10px
+}
+
+.verticalBtns{
+display:flex;
+flex-direction:column;
+gap:4px
+}
 
 .icon-btn{
 background:#333;border:none;color:#fff;border-radius:8px;
@@ -36,7 +46,9 @@ width:20px;height:20px;border:2px solid #555;border-radius:6px;
 display:flex;align-items:center;justify-content:center;color:#4caf50
 }
 .checked{background:#123f1a;border-color:#4caf50}
+
 .del-btn{color:#ff5f5f}
+.bar{color:#555;font-size:18px;}
 </style>
 </head>
 
@@ -69,9 +81,9 @@ function render(){
 
  todos.forEach((t,i)=>{
   const li=document.createElement("li");
-  li.draggable=true;
 
-  const txt=document.createElement("span");
+  const txt=document.createElement("div");
+  txt.className="textBox";
   txt.textContent=t.text;
 
   const actions=document.createElement("div");
@@ -79,7 +91,17 @@ function render(){
 
   const box=document.createElement("div");
   box.className="checkBox";
-  if(t.done){box.classList.add("checked");box.textContent="✓";}
+  if(t.done){
+    box.classList.add("checked");
+    box.textContent="✓";
+  }
+
+  const bar=document.createElement("div");
+  bar.className="bar";
+  bar.textContent="|";
+
+  const vbtns=document.createElement("div");
+  vbtns.className="verticalBtns";
 
   const up=document.createElement("button");
   up.textContent="▲";
@@ -111,31 +133,14 @@ function render(){
     save();render();
   };
 
+  vbtns.append(up,down);
+  actions.append(box,bar,vbtns,del);
+
   li.onclick=()=>{
     todos[i].done=!todos[i].done;
     save();render();
   };
 
-  // 🔥 드래그 기능
-  li.addEventListener("dragstart",()=>{
-    li.classList.add("dragging");
-    li.dataset.index=i;
-  });
-  li.addEventListener("dragend",()=>{
-    li.classList.remove("dragging");
-  });
-  li.addEventListener("dragover",(e)=>{
-    e.preventDefault();
-    const dragging=document.querySelector(".dragging");
-    if(!dragging) return;
-    const from=+dragging.dataset.index;
-    const to=i;
-    const item=todos.splice(from,1)[0];
-    todos.splice(to,0,item);
-    save();render();
-  });
-
-  actions.append(box,up,down,del);
   li.append(txt,actions);
   listEl.appendChild(li);
  });
