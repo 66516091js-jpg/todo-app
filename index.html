@@ -11,7 +11,10 @@ body{margin:0;background:#000;color:#fff;font-family:sans-serif}
 h2{font-size:18px;margin:16px 0 8px}
 
 .week{display:flex;gap:4px;margin-bottom:6px}
-.day{flex:1;background:#1e1e1e;padding:6px 0;border-radius:10px;text-align:center;font-size:12px;cursor:pointer}
+.day{
+  flex:1;background:#1e1e1e;padding:6px 0;border-radius:10px;
+  text-align:center;font-size:12px;cursor:pointer
+}
 .day.done{background:#1e88e5}
 
 .card{background:#1e1e1e;border-radius:16px;padding:14px;margin-top:6px}
@@ -20,36 +23,39 @@ input{flex:1;padding:12px;border:none;border-radius:10px;background:#2a2a2a;colo
 button{background:#1877f2;border:none;color:white;border-radius:10px;padding:12px}
 
 ul{list-style:none;padding:0;margin:0}
-li{background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+li{
+background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;
+display:flex;justify-content:space-between;align-items:center;cursor:pointer
+}
 
 .checkBox{
 width:20px;height:20px;border:2px solid #555;border-radius:6px;
-display:flex;align-items:center;justify-content:center;color:#4caf50;font-weight:bold
+display:flex;align-items:center;justify-content:center;
+color:#4caf50;font-weight:bold
 }
 .checked{border-color:#4caf50;background:#123f1a}
 
-/* ▶ 우측 액션 */
-.actions{display:flex;align-items:center;gap:8px}
-.bar{color:#555}
+.actions{
+display:flex;align-items:center;gap:6px
+}
 
-/* ▶ 위/아래 버튼 세로 배치 */
-.sortBtns{
+.moveBox{
 display:flex;
 flex-direction:column;
-gap:4px
+gap:2px;
 }
-.sort-btn{
+
+.arrowBtn{
 background:#333;
 border:none;
-color:#fff;
+color:white;
+font-size:12px;
 border-radius:6px;
 padding:2px 6px;
-font-size:12px
 }
 
 .del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
 
-/* 그래프 */
 .chart-bar{
 height:20px;background:#009688;margin:6px 0;border-radius:6px
 }
@@ -63,8 +69,8 @@ background:#1e1e1e;padding:20px;border-radius:16px;width:80%
 }
 </style>
 </head>
-
 <body>
+
 <div class="app">
 
 <h2>지난 주 한 일</h2>
@@ -96,6 +102,7 @@ background:#1e1e1e;padding:20px;border-radius:16px;width:80%
 </div>
 
 <script>
+/* ===== 기본 변수 ===== */
 const days=["월","화","수","목","금","토","일"];
 
 const lastWeekBar=document.getElementById("lastWeekBar");
@@ -116,20 +123,31 @@ let dayTasks=JSON.parse(localStorage.getItem("dayTasks")||"{}");
 let lastDailyReset=localStorage.getItem("lastDailyReset")||"";
 let lastWeeklyReset=localStorage.getItem("lastWeeklyReset")||"";
 
-function nowKST(){ return new Date(Date.now() + 9*60*60*1000); }
+/* ===== 시간 ===== */
+function nowKST(){
+  return new Date(Date.now()+9*60*60*1000);
+}
 
 function todayKey(){
   const d=nowKST();
-  if(d.getHours()<5)d.setDate(d.getDate()-1);
+  if(d.getHours()<5) d.setDate(d.getDate()-1);
   return d.toISOString().split("T")[0];
 }
 
-function isMonday(){
+function isMonday5(){
   const d=nowKST();
-  if(d.getHours()<5)d.setDate(d.getDate()-1);
-  return d.getDay()===1;
+  return d.getDay()===1 && d.getHours()>=5;
 }
 
+function getMonday(offset=0){
+  const d=nowKST();
+  const day=d.getDay(); 
+  const diff=(day===0?-6:1)-day;
+  d.setDate(d.getDate()+diff+(offset*7));
+  return d;
+}
+
+/* ===== 저장 ===== */
 function saveAll(){
   localStorage.setItem("todos",JSON.stringify(todos));
   localStorage.setItem("history",JSON.stringify(history));
@@ -139,6 +157,7 @@ function saveAll(){
   localStorage.setItem("lastWeeklyReset",lastWeeklyReset);
 }
 
+/* ===== 리셋 ===== */
 function checkResets(){
   const today=todayKey();
 
@@ -147,7 +166,7 @@ function checkResets(){
     lastDailyReset=today;
   }
 
-  if(isMonday() && lastWeeklyReset!==today){
+  if(isMonday5() && lastWeeklyReset!==today){
     lastHistory={...history};
     history={};
     lastWeeklyReset=today;
@@ -156,14 +175,7 @@ function checkResets(){
   saveAll();
 }
 
-function getMonday(offset=0){
-  const d=nowKST();
-  const day=d.getDay();
-  const diff=(day===0?-6:1)-day;
-  d.setDate(d.getDate()+diff+(offset*7));
-  return d;
-}
-
+/* ===== 기록 갱신 ===== */
 function updateHistory(){
   const key=todayKey();
   history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
@@ -171,23 +183,48 @@ function updateHistory(){
   saveAll();
 }
 
+/* ===== 주간 렌더 ===== */
 function renderWeek(bar,dataStore,offset){
   bar.innerHTML="";
   const m=getMonday(offset);
   for(let i=0;i<7;i++){
-    const d=new Date(m);d.setDate(m.getDate()+i);
+    const d=new Date(m);
+    d.setDate(m.getDate()+i);
     const key=d.toISOString().split("T")[0];
     const data=dataStore[key]||{done:0,total:0};
 
     const div=document.createElement("div");
     div.className="day";
     div.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
-    if(data.done===data.total&&data.total>0)div.classList.add("done");
+    if(data.done===data.total&&data.total>0) div.classList.add("done");
+
+    div.onclick=()=>openDetail(key,days[i],offset);
     bar.appendChild(div);
   }
 }
 
-/* ▶ 지난 주 통계 */
+/* ===== 팝업 ===== */
+function openDetail(key,label,offset){
+  modal.style.display="flex";
+  modalTitle.textContent=(offset===-1?"지난 주 ":"이번 주 ")+label+"요일";
+
+  modalList.innerHTML="";
+  const tasks=dayTasks[key]||[];
+  if(tasks.length===0){
+    modalList.innerHTML="<li>기록 없음</li>";
+    return;
+  }
+
+  tasks.forEach(t=>{
+    const li=document.createElement("li");
+    li.textContent=t.text+(t.done?" ✅":" ❌");
+    modalList.appendChild(li);
+  });
+}
+
+function closeModal(){modal.style.display="none";}
+
+/* ===== 통계 ===== */
 function renderStats(){
   statsArea.innerHTML="";
   const counter={};
@@ -217,16 +254,16 @@ function renderStats(){
     row.style.marginBottom="12px";
 
     const label=document.createElement("div");
-    label.textContent=`${text} (${counter[text]}회)`;
+    label.textContent=text+" ("+counter[text]+"회)";
 
     const barBox=document.createElement("div");
     barBox.style.background="#222";
-    barBox.style.borderRadius="8px";
+    barBox.style.borderRadius="6px";
 
     const bar=document.createElement("div");
     bar.style.height="20px";
     bar.style.width=(counter[text]*20)+"px";
-    bar.style.background="#4caf50";
+    bar.style.background="#009688";
 
     barBox.appendChild(bar);
     row.append(label,barBox);
@@ -234,12 +271,22 @@ function renderStats(){
   });
 }
 
-/* ✅ 순서 변경 버튼 포함 렌더링 */
+/* ===== 할일 렌더 ===== */
+function moveTodoUp(i){
+  if(i===0) return;
+  [todos[i-1],todos[i]]=[todos[i],todos[i-1]];
+  updateHistory();render();
+}
+function moveTodoDown(i){
+  if(i===todos.length-1) return;
+  [todos[i+1],todos[i]]=[todos[i],todos[i+1]];
+  updateHistory();render();
+}
+
 function renderTodos(){
   listEl.innerHTML="";
   todos.forEach((t,i)=>{
     const li=document.createElement("li");
-
     const txt=document.createElement("span");
     txt.textContent=t.text;
 
@@ -250,53 +297,42 @@ function renderTodos(){
     box.className="checkBox";
     if(t.done){box.classList.add("checked");box.textContent="✓";}
 
-    const bar=document.createElement("span");
-    bar.className="bar";
-    bar.textContent="|";
+    const moveBox=document.createElement("div");
+    moveBox.className="moveBox";
 
-    /* ▲ ▼ 버튼 */
-    const sort=document.createElement("div");
-    sort.className="sortBtns";
+    const upBtn=document.createElement("button");
+    upBtn.textContent="▲";
+    upBtn.className="arrowBtn";
+    upBtn.onclick=(e)=>{e.stopPropagation();moveTodoUp(i);};
 
-    const up=document.createElement("button");
-    up.textContent="▲";
-    up.className="sort-btn";
-    up.onclick=(e)=>{
-      e.stopPropagation();
-      if(i===0)return;
-      [todos[i-1],todos[i]]=[todos[i],todos[i-1]];
-      updateHistory(); render();
-    }
+    const downBtn=document.createElement("button");
+    downBtn.textContent="▼";
+    downBtn.className="arrowBtn";
+    downBtn.onclick=(e)=>{e.stopPropagation();moveTodoDown(i);};
 
-    const down=document.createElement("button");
-    down.textContent="▼";
-    down.className="sort-btn";
-    down.onclick=(e)=>{
-      e.stopPropagation();
-      if(i===todos.length-1)return;
-      [todos[i+1],todos[i]]=[todos[i],todos[i+1]];
-      updateHistory(); render();
-    }
-
-    sort.append(up,down);
+    moveBox.append(upBtn,downBtn);
 
     const del=document.createElement("button");
     del.textContent="❌";
     del.className="del-btn";
-
-    li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render();}
     del.onclick=(e)=>{
       e.stopPropagation();
-      if(!confirm("삭제하시겠습니까?"))return;
+      if(!confirm("삭제하시겠습니까?")) return;
       todos.splice(i,1);updateHistory();render();
     };
 
-    actions.append(box,bar,sort,del);
+    li.onclick=()=>{
+      todos[i].done=!todos[i].done;
+      updateHistory();render();
+    };
+
+    actions.append(box,moveBox,del);
     li.append(txt,actions);
     listEl.appendChild(li);
   });
 }
 
+/* ===== 추가 ===== */
 function addTodo(){
   const t=inputEl.value.trim();
   if(!t)return;
@@ -308,6 +344,7 @@ function addTodo(){
 
 document.getElementById("addBtn").onclick=addTodo;
 
+/* ===== 전체 렌더 ===== */
 function render(){
   checkResets();
   renderWeek(lastWeekBar,lastHistory,-1);
@@ -319,5 +356,6 @@ function render(){
 updateHistory();
 render();
 </script>
+
 </body>
 </html>
