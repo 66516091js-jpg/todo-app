@@ -1,24 +1,54 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo Widget</title>
-  <style>
-    body { margin:0; background:#000; font-family:Arial; color:white; display:flex; justify-content:center; }
-    .app { width:100%; max-width:480px; background:#121212; padding:20px 16px; box-sizing:border-box; }
-    .header { font-size:22px; font-weight:bold; margin-bottom:10px; }
-    .week-bar { display:flex; gap:4px; margin-bottom:16px; }
-    .day { flex:1; background:#1e1e1e; border-radius:12px; text-align:center; padding:6px 0; font-size:12px; }
-    .day.done { background:#1e88e5; }
-    .card { background:#1e1e1e; border-radius:20px; padding:16px; }
-    .input-row { display:flex; gap:8px; margin-bottom:12px; }
-    input { flex:1; padding:12px; border-radius:12px; border:none; background:#2a2a2a; color:white; font-size:15px;}
-    button { padding:12px 16px; border-radius:12px; border:none; background:#1877f2; color:white; font-size:16px;}
-    ul { list-style:none; padding:0; margin:0; }
-    li { background:#2a2a2a; margin-bottom:8px; padding:12px; border-radius:14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;}
-    .del-btn { background:transparent; border:none; color:#ff5f5f; font-size:16px;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo</title>
+<style>
+body {margin:0;background:#000;font-family:Arial;color:white;display:flex;justify-content:center;}
+.app {width:100%;max-width:480px;background:#121212;padding:16px;}
+.header {font-size:22px;font-weight:bold;margin-bottom:10px;}
+.week-bar {display:flex;gap:4px;margin-bottom:12px;}
+.day {flex:1;background:#1e1e1e;border-radius:10px;text-align:center;padding:6px 0;font-size:12px;cursor:pointer;}
+.day.done {background:#1e88e5;}
+.card {background:#1e1e1e;border-radius:18px;padding:14px;}
+.input-row {display:flex;gap:8px;margin-bottom:12px;}
+input {flex:1;padding:12px;border-radius:10px;border:none;background:#2a2a2a;color:#fff;}
+button {padding:12px 14px;border-radius:10px;border:none;background:#1877f2;color:white;}
+ul {list-style:none;padding:0;margin:0;}
+li {background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+.del-btn{background:transparent;border:none;color:#ff5f5f;}
+
+.modal {
+  display:none;
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.7);
+  justify-content:center;
+  align-items:center;
+}
+.modal-box {
+  background:#1e1e1e;
+  padding:20px;
+  border-radius:16px;
+  max-width:90%;
+  max-height:80%;
+  overflow:auto;
+}
+.modal h3 {margin-top:0;}
+.close-btn {
+  margin-top:10px;
+  width:100%;
+  background:#ff5f5f;
+  border:none;
+  color:white;
+  padding:10px;
+  border-radius:10px;
+}
+.task-done {color:#4caf50;}
+.task-not {color:#ccc;}
+</style>
 </head>
 <body>
 
@@ -35,146 +65,152 @@
   </div>
 </div>
 
+<!-- ✅ 요일 상세 팝업 -->
+<div class="modal" id="dayModal">
+  <div class="modal-box">
+    <h3 id="modalTitle"></h3>
+    <ul id="modalList"></ul>
+    <button class="close-btn" onclick="closeModal()">닫기</button>
+  </div>
+</div>
+
 <script>
-  const listEl = document.getElementById("todoList");
-  const inputEl = document.getElementById("todoInput");
-  const addBtn = document.getElementById("addBtn");
-  const weekBar = document.getElementById("weekBar");
+const listEl = document.getElementById("todoList");
+const inputEl = document.getElementById("todoInput");
+const addBtn = document.getElementById("addBtn");
+const weekBar = document.getElementById("weekBar");
 
-  const days = ["월","화","수","목","금","토","일"];
+const modal = document.getElementById("dayModal");
+const modalTitle = document.getElementById("modalTitle");
+const modalList = document.getElementById("modalList");
 
-  let todos = JSON.parse(localStorage.getItem("todos")) || [];
-  let history = JSON.parse(localStorage.getItem("history")) || {};
-  let lastDailyReset = localStorage.getItem("lastDailyReset") || "";
-  let lastWeeklyReset = localStorage.getItem("lastWeeklyReset") || "";
+const days = ["월","화","수","목","금","토","일"];
 
-  function getDayKey(offset = 0) {
-    const now = new Date();
-    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
-    now.setDate(now.getDate() + offset);
-    return now.toISOString().split("T")[0];
+let todos = JSON.parse(localStorage.getItem("todos"))||[];
+let history = JSON.parse(localStorage.getItem("history"))||{};
+let dayTasks = JSON.parse(localStorage.getItem("dayTasks"))||{};
+
+function getTodayKey() {
+  const n = new Date();
+  if(n.getHours()<5) n.setDate(n.getDate()-1);
+  return n.toISOString().split("T")[0];
+}
+
+function getMonday() {
+  const n = new Date();
+  if(n.getHours()<5) n.setDate(n.getDate()-1);
+  const d = n.getDay();
+  const diff = (d===0?-6:1)-d;
+  const m = new Date(n);
+  m.setDate(n.getDate()+diff);
+  return m;
+}
+
+function saveTodos(){localStorage.setItem("todos",JSON.stringify(todos));}
+function saveHistory(){localStorage.setItem("history",JSON.stringify(history));}
+function saveDayTasks(){localStorage.setItem("dayTasks",JSON.stringify(dayTasks));}
+
+function updateHistory() {
+  const key = getTodayKey();
+  history[key] = {done: todos.filter(t=>t.done).length,total: todos.length};
+  dayTasks[key] = [...todos];
+  saveHistory();
+  saveDayTasks();
+}
+
+function renderWeekBar() {
+  weekBar.innerHTML="";
+  const monday=getMonday();
+
+  for(let i=0;i<7;i++){
+    const d=new Date(monday);
+    d.setDate(monday.getDate()+i);
+    const key=d.toISOString().split("T")[0];
+    const data=history[key]||{done:0,total:0};
+
+    const div=document.createElement("div");
+    div.className="day";
+    div.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
+    if(data.done===data.total&&data.total>0)div.classList.add("done");
+
+    div.onclick=()=>openDayDetail(key,days[i]);
+    weekBar.appendChild(div);
+  }
+}
+
+function openDayDetail(dateKey, label) {
+  modal.style.display="flex";
+  modalTitle.textContent = `${label}요일 상세`;
+
+  modalList.innerHTML="";
+  const tasks = dayTasks[dateKey] || [];
+  if(tasks.length===0){
+    modalList.innerHTML="<li>기록 없음</li>";
+    return;
   }
 
-  function getThisMondayKey() {
-    const now = new Date();
-    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+  tasks.forEach(t=>{
+    const li=document.createElement("li");
+    li.textContent = t.text + (t.done ? " ✅" : " ❌");
+    li.className = t.done ? "task-done" : "task-not";
+    modalList.appendChild(li);
+  });
+}
 
-    const day = now.getDay();
-    const diff = (day === 0 ? -6 : 1) - day;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
-    return monday.toISOString().split("T")[0];
-  }
+function closeModal(){
+  modal.style.display="none";
+}
 
-  function dailyReset() {
-    const today = getDayKey();
-    if (lastDailyReset !== today) {
-      todos = todos.map(t => ({ text:t.text, done:false }));
-      localStorage.setItem("lastDailyReset", today);
-      lastDailyReset = today;
+function renderTodos(){
+  listEl.innerHTML="";
+  todos.forEach((t,i)=>{
+    const li=document.createElement("li");
+    const span=document.createElement("span");
+    span.textContent=t.text;
+
+    const del=document.createElement("button");
+    del.className="del-btn";
+    del.textContent="❌";
+
+    li.onclick=()=>{
+      todos[i].done=!todos[i].done;
       saveTodos();
-    }
-  }
-
-  function weeklyReset() {
-    const thisMonday = getThisMondayKey();
-    if (lastWeeklyReset !== thisMonday) {
-      history = {};
-      localStorage.setItem("lastWeeklyReset", thisMonday);
-      lastWeeklyReset = thisMonday;
-      saveHistory();
-    }
-  }
-
-  function saveTodos() {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }
-  function saveHistory() {
-    localStorage.setItem("history", JSON.stringify(history));
-  }
-
-  function updateHistory() {
-    const today = getDayKey();
-    history[today] = {
-      done: todos.filter(t => t.done).length,
-      total: todos.length
+      updateHistory();
+      renderTodos();
+      renderWeekBar();
     };
-    saveHistory();
-  }
 
-  function renderWeekBar() {
-    weekBar.innerHTML = "";
-    const mondayKey = getThisMondayKey();
-    const mondayDate = new Date(mondayKey);
+    del.onclick=(e)=>{
+      e.stopPropagation();
+      if(!confirm("정말 삭제하시겠습니까?")) return;
+      todos.splice(i,1);
+      saveTodos();
+      updateHistory();
+      renderTodos();
+      renderWeekBar();
+    };
 
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(mondayDate);
-      d.setDate(mondayDate.getDate() + i);
-      const key = d.toISOString().split("T")[0];
-      const data = history[key] || {done:0,total:0};
+    li.append(span,del);
+    listEl.appendChild(li);
+  })
+}
 
-      const div = document.createElement("div");
-      div.className = "day";
-      div.innerHTML = `${days[i]}<br>${data.done}/${data.total}`;
-
-      if (data.done === data.total && data.total > 0) div.classList.add("done");
-      weekBar.appendChild(div);
-    }
-  }
-
-  function renderTodos() {
-    listEl.innerHTML = "";
-    todos.forEach((todo,i)=>{
-      const li=document.createElement("li");
-      const span=document.createElement("span");
-      span.textContent=todo.text;
-
-      const del=document.createElement("button");
-      del.className="del-btn";
-      del.textContent="❌";
-
-      li.onclick=()=>{
-        todos[i].done=!todos[i].done;
-        saveTodos();
-        updateHistory();
-        renderTodos();
-        renderWeekBar();
-      };
-
-      del.onclick=(e)=>{
-        e.stopPropagation();
-        if(!confirm("정말 삭제하시겠습니까?")) return;
-        todos.splice(i,1);
-        saveTodos();
-        updateHistory();
-        renderTodos();
-        renderWeekBar();
-      };
-
-      li.append(span,del);
-      listEl.appendChild(li);
-    });
-  }
-
-  function addTodo() {
-    const text=inputEl.value.trim();
-    if(!text) return;
-    todos.push({text,done:false});
-    inputEl.value="";
-    saveTodos();
-    updateHistory();
-    renderTodos();
-    renderWeekBar();
-  }
-
-  addBtn.addEventListener("click",addTodo);
-
-  // ✅ 실행 순서
-  weeklyReset();
-  dailyReset();
+function addTodo(){
+  const text=inputEl.value.trim();
+  if(!text) return;
+  todos.push({text,done:false});
+  inputEl.value="";
+  saveTodos();
   updateHistory();
   renderTodos();
   renderWeekBar();
+}
+
+addBtn.onclick=addTodo;
+
+updateHistory();
+renderTodos();
+renderWeekBar();
 </script>
 
 </body>
