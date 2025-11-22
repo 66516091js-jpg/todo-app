@@ -3,55 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>투두 위젯</title>
+  <title>Samsung Todo</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #202124;
-      color: white;
       margin: 0;
-      padding: 16px;
+      padding: 0;
+      background: #000000;
+      font-family: "SamsungOne", Arial, sans-serif;
+      color: #eaeaea;
       display: flex;
       justify-content: center;
     }
 
-    .widget {
+    .app {
       width: 100%;
-      max-width: 420px;
-      background: #303134;
-      border-radius: 24px;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      max-width: 480px;
+      min-height: 100vh;
+      background: #121212;
+      padding: 20px 16px 80px;
+      box-sizing: border-box;
     }
 
-    .widget-header {
-      font-size: 20px;
+    .header {
+      font-size: 26px;
       font-weight: bold;
-      margin-bottom: 12px;
-      text-align: center;
+      margin-bottom: 16px;
+      text-align: left;
+      letter-spacing: -0.5px;
+    }
+
+    .card {
+      background: #1e1e1e;
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
     }
 
     .input-row {
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
     input {
       flex: 1;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 14px 16px;
+      border-radius: 18px;
       border: none;
       font-size: 16px;
+      background: #2a2a2a;
+      color: #ffffff;
+      outline: none;
     }
 
-    button {
-      padding: 12px;
+    .add-btn {
+      padding: 14px 18px;
+      border-radius: 18px;
       border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      background: #1a73e8;
-      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      background: #1877F2;
+      color: #fff;
     }
 
     ul {
@@ -61,17 +73,20 @@
     }
 
     li {
-      background: #3c4043;
-      margin-bottom: 8px;
-      padding: 12px;
-      border-radius: 16px;
+      background: #2a2a2a;
+      margin-bottom: 10px;
+      padding: 14px 16px;
+      border-radius: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 16px;
     }
 
     .task {
       flex: 1;
+      margin-right: 8px;
+      line-height: 1.3;
     }
 
     .done {
@@ -79,27 +94,38 @@
       color: #9aa0a6;
     }
 
-    .meta {
-      margin-top: 10px;
-      font-size: 12px;
-      color: #9aa0a6;
+    .del-btn {
+      background: #3a3a3a;
+      border: none;
+      border-radius: 14px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .bottom-info {
+      margin-top: 20px;
       text-align: center;
+      font-size: 12px;
+      color: #888;
     }
   </style>
 </head>
 <body>
 
-<div class="widget">
-  <div class="widget-header">✅ 오늘 할 일</div>
+<div class="app">
+  <div class="header">오늘 할 일</div>
 
-  <div class="input-row">
-    <input id="todoInput" placeholder="할 일을 입력하세요">
-    <button id="addBtn">+</button>
+  <div class="card">
+    <div class="input-row">
+      <input id="todoInput" placeholder="할 일을 입력하세요">
+      <button class="add-btn" id="addBtn">+</button>
+    </div>
+
+    <ul id="todoList"></ul>
+
+    <div class="bottom-info" id="resetInfo"></div>
   </div>
-
-  <ul id="todoList"></ul>
-
-  <div class="meta" id="resetInfo"></div>
 </div>
 
 <script>
@@ -117,7 +143,7 @@
     return now.toISOString().split("T")[0];
   }
 
-  function checkDailyReset() {
+  function dailyResetCheck() {
     const todayKey = getResetDateKey();
     if (lastReset !== todayKey) {
       todos = todos.map(t => ({ text: t.text, done: false }));
@@ -125,7 +151,7 @@
       lastReset = todayKey;
       saveTodos();
     }
-    resetInfo.textContent = "매일 오전 5시에 체크가 리셋됩니다";
+    resetInfo.textContent = "매일 오전 5시에 체크 상태가 리셋됩니다";
   }
 
   function saveTodos() {
@@ -149,8 +175,8 @@
       };
 
       const del = document.createElement("button");
-      del.textContent = "✕";
-      del.style.background = "#5f6368";
+      del.className = "del-btn";
+      del.textContent = "삭제";
       del.onclick = () => {
         todos.splice(i, 1);
         saveTodos();
@@ -174,7 +200,7 @@
 
   addBtn.addEventListener("click", addTodo);
 
-  checkDailyReset();
+  dailyResetCheck();
   renderTodos();
 </script>
 
