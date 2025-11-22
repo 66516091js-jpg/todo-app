@@ -53,39 +53,54 @@
 </head>
 <body>
 
-  <div class="todo-container">
-    <h2>📋 나의 할 일</h2>
-    <div>
-      <input id="todoInput" placeholder="할 일을 입력하세요">
-<button type="button" onclick="addTodo()">추가</button>
-    </div>
-    <ul id="todoList"></ul>
+<div class="todo-container">
+  <h2>📋 나의 할 일</h2>
+  <div>
+    <input id="todoInput" placeholder="할 일을 입력하세요">
+    <button type="button" id="addBtn">추가</button>
   </div>
+  <ul id="todoList"></ul>
+</div>
 
-  <script>
-    const listEl = document.getElementById("todoList");
-    const inputEl = document.getElementById("todoInput");
+<script>
+  const listEl = document.getElementById("todoList");
+  const inputEl = document.getElementById("todoInput");
+  const addBtn = document.getElementById("addBtn");
 
-    let todos = JSON.parse(localStorage.getItem("todos")) || [];
+  let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
-    function saveTodos() {
-      localStorage.setItem("todos", JSON.stringify(todos));
-    }
+  function saveTodos() {
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }
 
-    function renderTodos() {
-      listEl.innerHTML = "";
-      todos.forEach((todo, index) => {
-        const li = document.createElement("li");
+  function renderTodos() {
+    listEl.innerHTML = "";
+    todos.forEach((todo, index) => {
+      const li = document.createElement("li");
 
-        const span = document.createElement("span");
-        span.textContent = todo.text;
-        if (todo.done) span.classList.add("done");
+      const span = document.createElement("span");
+      span.textContent = todo.text;
+      if (todo.done) span.classList.add("done");
 
-        span.onclick = () => {
-          todos[index].done = !todos[index].done;
-          saveTodos();
-          renderTodos();
-        };
+      span.addEventListener("click", () => {
+        todos[index].done = !todos[index].done;
+        saveTodos();
+        renderTodos();
+      });
 
-        con
+      const btn = document.createElement("button");
+      btn.textContent = "삭제";
+      btn.addEventListener("click", () => {
+        todos.splice(index, 1);
+        saveTodos();
+        renderTodos();
+      });
 
+      li.appendChild(span);
+      li.appendChild(btn);
+      listEl.appendChild(li);
+    });
+  }
+
+  function addTodo() {
+    const text
