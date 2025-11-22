@@ -1,278 +1,194 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Todo</title>
 
 <style>
-body { margin:0; background:#000; font-family:Arial; color:white; }
-.app { max-width:480px; margin:auto; background:#121212; padding:16px; }
-.header { font-size:22px; font-weight:bold; margin-bottom:10px; }
+body{margin:0;background:#000;color:#fff;font-family:sans-serif}
+.app{max-width:480px;margin:auto;padding:16px;background:#121212}
+.week{display:flex;gap:4px;margin-bottom:10px}
+.day{flex:1;background:#1e1e1e;padding:6px 0;border-radius:10px;text-align:center;font-size:12px}
+.day.done{background:#1e88e5}
+.card{background:#1e1e1e;border-radius:16px;padding:14px}
 
-.week-bar { display:flex; gap:4px; margin-bottom:12px; }
-.day {
-  flex:1;
-  background:#1e1e1e;
-  border-radius:10px;
-  text-align:center;
-  padding:6px 0;
-  font-size:12px;
-  cursor:pointer;
-}
-.day.done { background:#1e88e5; }
+input{flex:1;padding:12px;border:none;border-radius:10px;background:#2a2a2a;color:#fff}
+button{background:#1877f2;border:none;color:white;border-radius:10px;padding:12px}
 
-.card { background:#1e1e1e; border-radius:18px; padding:14px; }
-.input-row { display:flex; gap:8px; margin-bottom:12px; }
-
-input {
-  flex:1;
-  padding:12px;
-  border-radius:10px;
-  border:none;
-  background:#2a2a2a;
-  color:white;
+ul{list-style:none;padding:0;margin:0}
+li{
+background:#2a2a2a;
+margin-bottom:8px;
+padding:10px;
+border-radius:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:pointer
 }
 
-button {
-  padding:12px 14px;
-  border-radius:10px;
-  border:none;
-  background:#1877f2;
-  color:white;
+.checkBox{
+width:20px;height:20px;
+border:2px solid #555;
+border-radius:6px;
+display:flex;
+align-items:center;
+justify-content:center;
+color:#4caf50;
+font-weight:bold;
 }
 
-ul { list-style:none; padding:0; margin:0; }
-li {
-  background:#2a2a2a;
-  margin-bottom:8px;
-  padding:10px;
-  border-radius:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  cursor:pointer;
+.checked{
+border-color:#4caf50;
+background:#123f1a;
 }
 
-.del-btn {
-  background:transparent;
-  border:none;
-  color:#ff5f5f;
-  font-size:16px;
-}
+.actions{display:flex;align-items:center;gap:6px}
+.del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
 
-/* 팝업 */
-.modal {
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.8);
-  justify-content:center;
-  align-items:center;
-  z-index:999;
+.modal{
+position:fixed;inset:0;background:rgba(0,0,0,.8);
+display:none;justify-content:center;align-items:center;z-index:999
 }
-.modal-box {
-  background:#1e1e1e;
-  padding:20px;
-  border-radius:16px;
-  width:80%;
-  max-height:80%;
-  overflow:auto;
+.modalBox{
+background:#1e1e1e;padding:20px;border-radius:16px;width:80%
 }
-.close-btn {
-  margin-top:10px;
-  width:100%;
-  background:#ff5f5f;
-  border:none;
-  color:white;
-  padding:10px;
-  border-radius:10px;
-}
-.task-done { color:#4caf50; }
-.task-not { color:#ccc; }
 </style>
 </head>
 
 <body>
-
 <div class="app">
-  <div class="header">이번 주 진행도</div>
-  <div class="week-bar" id="weekBar"></div>
 
-  <div class="card">
-    <div class="input-row">
-      <input id="todoInput" placeholder="할 일을 입력하세요">
-      <button id="addBtn">+</button>
-    </div>
-    <ul id="todoList"></ul>
+<div class="week" id="weekBar"></div>
+
+<div class="card">
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input id="todoInput" placeholder="할 일 입력">
+    <button id="addBtn">+</button>
   </div>
+  <ul id="todoList"></ul>
 </div>
 
-<div class="modal" id="dayModal">
-  <div class="modal-box">
+</div>
+
+<div class="modal" id="modal">
+  <div class="modalBox">
     <h3 id="modalTitle"></h3>
     <ul id="modalList"></ul>
-    <button class="close-btn" onclick="closeModal()">닫기</button>
+    <button onclick="closeModal()">닫기</button>
   </div>
 </div>
 
 <script>
-const days = ["월","화","수","목","금","토","일"];
+const days=["월","화","수","목","금","토","일"];
 
-const listEl = document.getElementById("todoList");
-const inputEl = document.getElementById("todoInput");
-const addBtn = document.getElementById("addBtn");
-const weekBar = document.getElementById("weekBar");
+const listEl=document.getElementById("todoList");
+const inputEl=document.getElementById("todoInput");
+const weekBar=document.getElementById("weekBar");
 
-const modal = document.getElementById("dayModal");
-const modalTitle = document.getElementById("modalTitle");
-const modalList = document.getElementById("modalList");
+let todos=JSON.parse(localStorage.getItem("todos")||"[]");
+let history=JSON.parse(localStorage.getItem("history")||"{}");
+let dayTasks=JSON.parse(localStorage.getItem("dayTasks")||"{}");
 
-let todos = JSON.parse(localStorage.getItem("todos") || "[]");
-let history = JSON.parse(localStorage.getItem("history") || "{}");
-let dayTasks = JSON.parse(localStorage.getItem("dayTasks") || "{}");
-
-function getTodayKey() {
-  const n = new Date();
-  if (n.getHours() < 5) n.setDate(n.getDate()-1);
-  return n.toISOString().split("T")[0];
+function todayKey(){
+ let d=new Date();
+ if(d.getHours()<5)d.setDate(d.getDate()-1);
+ return d.toISOString().split("T")[0];
 }
 
-function getMonday() {
-  const n = new Date();
-  if (n.getHours() < 5) n.setDate(n.getDate()-1);
-  const d = n.getDay();
-  const diff = (d === 0 ? -6 : 1) - d;
-  n.setDate(n.getDate() + diff);
-  return n;
+function monday(){
+ let d=new Date();
+ if(d.getHours()<5)d.setDate(d.getDate()-1);
+ let day=d.getDay(); let diff=(day===0?-6:1)-day;
+ d.setDate(d.getDate()+diff); return d;
 }
 
-function saveAll() {
-  localStorage.setItem("todos", JSON.stringify(todos));
-  localStorage.setItem("history", JSON.stringify(history));
-  localStorage.setItem("dayTasks", JSON.stringify(dayTasks));
+function save(){
+ localStorage.setItem("todos",JSON.stringify(todos));
+ localStorage.setItem("history",JSON.stringify(history));
+ localStorage.setItem("dayTasks",JSON.stringify(dayTasks));
 }
 
-function updateHistory() {
-  const key = getTodayKey();
-  history[key] = {
-    done: todos.filter(t => t.done).length,
-    total: todos.length
-  };
-  dayTasks[key] = todos.map(t => ({...t}));
-  saveAll();
+function updateHistory(){
+ const k=todayKey();
+ history[k]={done:todos.filter(t=>t.done).length,total:todos.length};
+ dayTasks[k]=todos.map(t=>({...t}));
+ save();
 }
 
-function renderWeekBar() {
-  weekBar.innerHTML = "";
-  const monday = getMonday();
+function renderWeek(){
+ weekBar.innerHTML="";
+ const m=monday();
+ for(let i=0;i<7;i++){
+  let d=new Date(m);d.setDate(m.getDate()+i);
+  let k=d.toISOString().split("T")[0];
+  let data=history[k]||{done:0,total:0};
 
-  for(let i=0;i<7;i++){
-    const d = new Date(monday);
-    d.setDate(monday.getDate()+i);
-    const key = d.toISOString().split("T")[0];
-    const data = history[key] || {done:0,total:0};
-
-    const div = document.createElement("div");
-    div.className = "day";
-    div.innerHTML = `${days[i]}<br>${data.done}/${data.total}`;
-
-    if(data.done === data.total && data.total > 0) {
-      div.classList.add("done");
-    }
-
-    div.onclick = () => openDayDetail(key, days[i]);
-    weekBar.appendChild(div);
-  }
+  let box=document.createElement("div");
+  box.className="day";
+  box.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
+  if(data.done===data.total && data.total>0)box.classList.add("done");
+  weekBar.appendChild(box);
+ }
 }
 
-function openDayDetail(key, label) {
-  modal.style.display = "flex";
-  modalTitle.textContent = `${label}요일 상세`;
-  modalList.innerHTML = "";
+function renderTodos(){
+ listEl.innerHTML="";
+ todos.forEach((t,i)=>{
+  const li=document.createElement("li");
 
-  const tasks = dayTasks[key] || [];
+  const txt=document.createElement("span");
+  txt.textContent=t.text;
 
-  if (tasks.length === 0) {
-    modalList.innerHTML = "<li>기록 없음</li>";
-    return;
+  const actions=document.createElement("div");
+  actions.className="actions";
+
+  const box=document.createElement("div");
+  box.className="checkBox";
+  if(t.done){
+    box.classList.add("checked");
+    box.textContent="✓";
   }
 
-  tasks.forEach(t=>{
-    const li = document.createElement("li");
-    li.textContent = t.text + (t.done ? " ✅" : " ❌");
-    li.className = t.done ? "task-done" : "task-not";
-    modalList.appendChild(li);
-  });
+  const bar=document.createElement("span");
+  bar.textContent="|";
+
+  const del=document.createElement("button");
+  del.textContent="❌";
+  del.className="del-btn";
+
+  li.onclick=()=>{
+   todos[i].done=!todos[i].done;
+   updateHistory();renderTodos();renderWeek();
+  }
+
+  del.onclick=(e)=>{
+   e.stopPropagation();
+   if(!confirm("삭제하시겠습니까?"))return;
+   todos.splice(i,1);
+   updateHistory();renderTodos();renderWeek();
+  }
+
+  actions.append(box,bar,del);
+  li.append(txt,actions);
+  listEl.appendChild(li);
+ })
 }
 
-function closeModal() {
-  modal.style.display = "none";
+function addTodo(){
+ const t=inputEl.value.trim();
+ if(!t)return;
+ todos.push({text:t,done:false});
+ inputEl.value="";
+ updateHistory();renderTodos();renderWeek();
 }
 
-function renderTodos() {
-  listEl.innerHTML = "";
-
-  todos.forEach((t,i)=>{
-    const li = document.createElement("li");
-
-    const span = document.createElement("span");
-    span.textContent = t.text;
-
-    const rightBox = document.createElement("div");
-    rightBox.style.display = "flex";
-    rightBox.style.alignItems = "center";
-    rightBox.style.gap = "6px";
-
-    const check = document.createElement("span");
-    check.textContent = t.done ? "✅" : "";
-
-    const sep = document.createElement("span");
-    sep.textContent = "|";
-
-    const del = document.createElement("button");
-    del.className = "del-btn";
-    del.textContent = "❌";
-
-    li.onclick = ()=>{
-      todos[i].done = !todos[i].done;
-      updateHistory();
-      renderTodos();
-      renderWeekBar();
-    };
-
-    del.onclick = (e)=>{
-      e.stopPropagation();
-      if(!confirm("정말 삭제하시겠습니까?")) return;
-      todos.splice(i,1);
-      updateHistory();
-      renderTodos();
-      renderWeekBar();
-    };
-
-    rightBox.append(check, sep, del);
-    li.append(span, rightBox);
-    listEl.appendChild(li);
-  });
-}
-
-function addTodo() {
-  const text = inputEl.value.trim();
-  if(!text) return;
-  todos.push({text,done:false});
-  inputEl.value="";
-  updateHistory();
-  renderTodos();
-  renderWeekBar();
-}
-
-addBtn.onclick = addTodo;
+document.getElementById("addBtn").onclick=addTodo;
 
 updateHistory();
 renderTodos();
-renderWeekBar();
+renderWeek();
 </script>
-
 </body>
 </html>
