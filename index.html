@@ -1,52 +1,48 @@
 <script>
-window.onload = function() {
+const listEl = document.getElementById("todoList");
+const inputEl = document.getElementById("todoInput");
 
-  const listEl = document.getElementById("todoList");
-  const inputEl = document.getElementById("todoInput");
+let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
-  let todos = JSON.parse(localStorage.getItem("todos")) || [];
+function saveTodos() {
+  localStorage.setItem("todos", JSON.stringify(todos));
+}
 
-  function saveTodos() {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }
+function renderTodos() {
+  listEl.innerHTML = "";
+  todos.forEach((todo, index) => {
+    const li = document.createElement("li");
+    const span = document.createElement("span");
+    span.textContent = todo.text;
+    if (todo.done) span.classList.add("done");
 
-  function renderTodos() {
-    listEl.innerHTML = "";
-    todos.forEach((todo, index) => {
-      const li = document.createElement("li");
-      const span = document.createElement("span");
-      span.textContent = todo.text;
-      if (todo.done) span.classList.add("done");
+    span.onclick = () => {
+      todos[index].done = !todos[index].done;
+      saveTodos();
+      renderTodos();
+    };
 
-      span.onclick = () => {
-        todos[index].done = !todos[index].done;
-        saveTodos();
-        renderTodos();
-      };
+    const btn = document.createElement("button");
+    btn.textContent = "삭제";
+    btn.onclick = () => {
+      todos.splice(index, 1);
+      saveTodos();
+      renderTodos();
+    };
 
-      const btn = document.createElement("button");
-      btn.textContent = "삭제";
-      btn.onclick = () => {
-        todos.splice(index, 1);
-        saveTodos();
-        renderTodos();
-      };
+    li.append(span, btn);
+    listEl.appendChild(li);
+  });
+}
 
-      li.append(span, btn);
-      listEl.appendChild(li);
-    });
-  }
-
-  function addTodo() {
-    const text = inputEl.value.trim();
-    if (!text) return;
-    todos.push({ text, done: false });
-    inputEl.value = "";
-    saveTodos();
-    renderTodos();
-  }
-
+function addTodo() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  todos.push({ text, done: false });
+  inputEl.value = "";
+  saveTodos();
   renderTodos();
+}
 
-};   <!-- 👈 이 줄 꼭 추가 -->
+renderTodos();
 </script>
