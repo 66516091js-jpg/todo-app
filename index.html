@@ -3,71 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>투두리스트</title>
+  <title>투두 위젯</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
+      background: #202124;
+      color: white;
+      margin: 0;
       padding: 16px;
+      display: flex;
+      justify-content: center;
     }
-    .todo-container {
-      max-width: 480px;
-      margin: auto;
-      background: #fff;
+
+    .widget {
+      width: 100%;
+      max-width: 420px;
+      background: #303134;
+      border-radius: 24px;
       padding: 16px;
-      border-radius: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
-    h2 { text-align: center; }
+
+    .widget-header {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
     .input-row {
       display: flex;
       gap: 8px;
+      margin-bottom: 12px;
     }
+
     input {
       flex: 1;
       padding: 12px;
+      border-radius: 12px;
+      border: none;
       font-size: 16px;
     }
+
     button {
       padding: 12px;
+      border: none;
+      border-radius: 12px;
       font-size: 16px;
+      background: #1a73e8;
+      color: white;
     }
+
     ul {
       list-style: none;
       padding: 0;
-      margin-top: 16px;
+      margin: 0;
     }
+
     li {
-      background: #eee;
+      background: #3c4043;
       margin-bottom: 8px;
       padding: 12px;
-      border-radius: 12px;
+      border-radius: 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+
+    .task {
+      flex: 1;
+    }
+
     .done {
       text-decoration: line-through;
-      color: gray;
+      color: #9aa0a6;
     }
-    .time-label {
+
+    .meta {
+      margin-top: 10px;
       font-size: 12px;
-      color: #777;
+      color: #9aa0a6;
       text-align: center;
-      margin-top: 8px;
     }
   </style>
 </head>
 <body>
 
-<div class="todo-container">
-  <h2>📋 오늘의 할 일</h2>
+<div class="widget">
+  <div class="widget-header">✅ 오늘 할 일</div>
+
   <div class="input-row">
     <input id="todoInput" placeholder="할 일을 입력하세요">
-    <button id="addBtn" type="button">추가</button>
+    <button id="addBtn">+</button>
   </div>
+
   <ul id="todoList"></ul>
-  <div class="time-label" id="resetInfo"></div>
+
+  <div class="meta" id="resetInfo"></div>
 </div>
 
 <script>
@@ -81,29 +113,19 @@
 
   function getResetDateKey() {
     const now = new Date();
-    // 오전 5시 기준 날짜 계산
-    if (now.getHours() < 5) {
-      now.setDate(now.getDate() - 1);
-    }
-    return now.toISOString().split("T")[0]; // YYYY-MM-DD
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now.toISOString().split("T")[0];
   }
 
   function checkDailyReset() {
     const todayKey = getResetDateKey();
-
     if (lastReset !== todayKey) {
-      // ✅ 5시 기준 새로운 날이면 체크 상태 리셋
-      todos = todos.map(todo => ({
-        text: todo.text,
-        done: false
-      }));
-      saveTodos();
+      todos = todos.map(t => ({ text: t.text, done: false }));
       localStorage.setItem("lastResetDate", todayKey);
       lastReset = todayKey;
+      saveTodos();
     }
-
-    const now = new Date();
-    resetInfo.textContent = `✅ 매일 오전 5시에 체크 상태가 리셋됩니다 (현재 기준일: ${todayKey})`;
+    resetInfo.textContent = "매일 오전 5시에 체크가 리셋됩니다";
   }
 
   function saveTodos() {
@@ -116,25 +138,27 @@
       const li = document.createElement("li");
 
       const span = document.createElement("span");
+      span.className = "task";
       span.textContent = todo.text;
       if (todo.done) span.classList.add("done");
 
-      span.addEventListener("click", () => {
+      span.onclick = () => {
         todos[i].done = !todos[i].done;
         saveTodos();
         renderTodos();
-      });
+      };
 
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "삭제";
-      delBtn.addEventListener("click", () => {
+      const del = document.createElement("button");
+      del.textContent = "✕";
+      del.style.background = "#5f6368";
+      del.onclick = () => {
         todos.splice(i, 1);
         saveTodos();
         renderTodos();
-      });
+      };
 
       li.appendChild(span);
-      li.appendChild(delBtn);
+      li.appendChild(del);
       listEl.appendChild(li);
     });
   }
@@ -150,7 +174,6 @@
 
   addBtn.addEventListener("click", addTodo);
 
-  // ✅ 페이지 열릴 때마다 리셋 확인
   checkDailyReset();
   renderTodos();
 </script>
