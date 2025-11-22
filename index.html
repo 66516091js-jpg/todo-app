@@ -1,48 +1,90 @@
-<script>
-const listEl = document.getElementById("todoList");
-const inputEl = document.getElementById("todoInput");
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>투두리스트</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+    }
+    .todo-container {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+    }
+    input {
+      width: 70%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px;
+      font-size: 16px;
+      margin-left: 5px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 15px;
+    }
+    li {
+      background: #eee;
+      margin-bottom: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .done {
+      text-decoration: line-through;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
 
-let todos = JSON.parse(localStorage.getItem("todos")) || [];
+  <div class="todo-container">
+    <h2>📋 나의 할 일</h2>
+    <div>
+      <input id="todoInput" placeholder="할 일을 입력하세요">
+      <button onclick="addTodo()">추가</button>
+    </div>
+    <ul id="todoList"></ul>
+  </div>
 
-function saveTodos() {
-  localStorage.setItem("todos", JSON.stringify(todos));
-}
+  <script>
+    const listEl = document.getElementById("todoList");
+    const inputEl = document.getElementById("todoInput");
 
-function renderTodos() {
-  listEl.innerHTML = "";
-  todos.forEach((todo, index) => {
-    const li = document.createElement("li");
-    const span = document.createElement("span");
-    span.textContent = todo.text;
-    if (todo.done) span.classList.add("done");
+    let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
-    span.onclick = () => {
-      todos[index].done = !todos[index].done;
-      saveTodos();
-      renderTodos();
-    };
+    function saveTodos() {
+      localStorage.setItem("todos", JSON.stringify(todos));
+    }
 
-    const btn = document.createElement("button");
-    btn.textContent = "삭제";
-    btn.onclick = () => {
-      todos.splice(index, 1);
-      saveTodos();
-      renderTodos();
-    };
+    function renderTodos() {
+      listEl.innerHTML = "";
+      todos.forEach((todo, index) => {
+        const li = document.createElement("li");
 
-    li.append(span, btn);
-    listEl.appendChild(li);
-  });
-}
+        const span = document.createElement("span");
+        span.textContent = todo.text;
+        if (todo.done) span.classList.add("done");
 
-function addTodo() {
-  const text = inputEl.value.trim();
-  if (!text) return;
-  todos.push({ text, done: false });
-  inputEl.value = "";
-  saveTodos();
-  renderTodos();
-}
+        span.onclick = () => {
+          todos[index].done = !todos[index].done;
+          saveTodos();
+          renderTodos();
+        };
 
-renderTodos();
-</script>
+        con
