@@ -10,49 +10,38 @@ body{margin:0;background:#000;color:#fff;font-family:sans-serif}
 .app{max-width:480px;margin:auto;padding:16px;background:#121212}
 h2{font-size:18px;margin:16px 0 8px}
 
-.week{display:flex;gap:4px;margin-bottom:6px}
-.day{flex:1;background:#1e1e1e;padding:6px 0;border-radius:10px;text-align:center;font-size:12px;cursor:pointer}
-.day.done{background:#1e88e5}
-
-.card{background:#1e1e1e;border-radius:16px;padding:14px;margin-top:6px}
+.card{background:#1e1e1e;border-radius:16px;padding:14px}
 
 input{flex:1;padding:12px;border:none;border-radius:10px;background:#2a2a2a;color:#fff}
 button{background:#1877f2;border:none;color:white;border-radius:10px;padding:12px}
 
-ul{list-style:none;padding:0;margin:0}
-li{background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+ul{list-style:none;padding:0;margin:12px 0 0}
+li{
+background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;
+display:flex;justify-content:space-between;align-items:center;
+cursor:grab;user-select:none
+}
+
+li.dragging{opacity:0.4}
+
+.actions{display:flex;gap:4px;align-items:center}
+
+.icon-btn{
+background:#333;border:none;color:#fff;border-radius:8px;
+padding:4px 8px;font-size:12px
+}
 
 .checkBox{
 width:20px;height:20px;border:2px solid #555;border-radius:6px;
-display:flex;align-items:center;justify-content:center;color:#4caf50;font-weight:bold
+display:flex;align-items:center;justify-content:center;color:#4caf50
 }
-.checked{border-color:#4caf50;background:#123f1a}
-
-.actions{display:flex;align-items:center;gap:6px}
-.del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
-
-.chart-bar{
-height:20px;background:#009688;margin:6px 0;border-radius:6px
-}
-
-.modal{
-position:fixed;inset:0;background:rgba(0,0,0,.8);
-display:none;justify-content:center;align-items:center;z-index:999
-}
-.modalBox{
-background:#1e1e1e;padding:20px;border-radius:16px;width:80%
-}
+.checked{background:#123f1a;border-color:#4caf50}
+.del-btn{color:#ff5f5f}
 </style>
 </head>
 
 <body>
 <div class="app">
-
-<h2>지난 주 한 일</h2>
-<div class="week" id="lastWeekBar"></div>
-
-<h2>이번 주 한 일</h2>
-<div class="week" id="thisWeekBar"></div>
 
 <h2>일일 할 일</h2>
 <div class="card">
@@ -63,203 +52,103 @@ background:#1e1e1e;padding:20px;border-radius:16px;width:80%
   <ul id="todoList"></ul>
 </div>
 
-<h2>지난 주 통계</h2>
-<div class="card" id="statsArea"></div>
-
-</div>
-
-<div class="modal" id="modal">
-  <div class="modalBox">
-    <h3 id="modalTitle"></h3>
-    <ul id="modalList"></ul>
-    <button onclick="closeModal()">닫기</button>
-  </div>
 </div>
 
 <script>
-const days=["월","화","수","목","금","토","일"];
-
-const lastWeekBar=document.getElementById("lastWeekBar");
-const thisWeekBar=document.getElementById("thisWeekBar");
 const listEl=document.getElementById("todoList");
 const inputEl=document.getElementById("todoInput");
-const statsArea=document.getElementById("statsArea");
-
-const modal=document.getElementById("modal");
-const modalTitle=document.getElementById("modalTitle");
-const modalList=document.getElementById("modalList");
 
 let todos=JSON.parse(localStorage.getItem("todos")||"[]");
-let history=JSON.parse(localStorage.getItem("history")||"{}");
-let lastHistory=JSON.parse(localStorage.getItem("lastHistory")||"{}");
-let dayTasks=JSON.parse(localStorage.getItem("dayTasks")||"{}");
 
-let lastDailyReset=localStorage.getItem("lastDailyReset")||"";
-let lastWeeklyReset=localStorage.getItem("lastWeeklyReset")||"";
-
-function nowKST(){ return new Date(Date.now() + 9*60*60*1000); }
-
-function todayKey(){
-  const d=nowKST();
-  if(d.getHours()<5)d.setDate(d.getDate()-1);
-  return d.toISOString().split("T")[0];
+function save(){
+ localStorage.setItem("todos",JSON.stringify(todos));
 }
-
-function isMonday(){
-  const d=nowKST();
-  if(d.getHours()<5)d.setDate(d.getDate()-1);
-  return d.getDay()===1;
-}
-
-function saveAll(){
-  localStorage.setItem("todos",JSON.stringify(todos));
-  localStorage.setItem("history",JSON.stringify(history));
-  localStorage.setItem("lastHistory",JSON.stringify(lastHistory));
-  localStorage.setItem("dayTasks",JSON.stringify(dayTasks));
-  localStorage.setItem("lastDailyReset",lastDailyReset);
-  localStorage.setItem("lastWeeklyReset",lastWeeklyReset);
-}
-
-function checkResets(){
-  const today=todayKey();
-  if(lastDailyReset!==today){
-    todos=todos.map(t=>({...t,done:false}));
-    lastDailyReset=today;
-  }
-
-  if(isMonday() && lastWeeklyReset!==today){
-    lastHistory={...history};
-    history={};
-    lastWeeklyReset=today;
-  }
-
-  saveAll();
-}
-
-function getMonday(offset=0){
-  const d=nowKST();
-  const day=d.getDay();
-  const diff=(day===0?-6:1)-day;
-  d.setDate(d.getDate()+diff+(offset*7));
-  return d;
-}
-
-function updateHistory(){
-  const key=todayKey();
-  history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
-  dayTasks[key]=todos.map(t=>({...t}));
-  saveAll();
-}
-
-function renderWeek(bar,dataStore,offset){
-  bar.innerHTML="";
-  const m=getMonday(offset);
-  for(let i=0;i<7;i++){
-    const d=new Date(m);d.setDate(m.getDate()+i);
-    const key=d.toISOString().split("T")[0];
-    const data=dataStore[key]||{done:0,total:0};
-
-    const div=document.createElement("div");
-    div.className="day";
-    div.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
-    if(data.done===data.total&&data.total>0)div.classList.add("done");
-    bar.appendChild(div);
-  }
-}
-
-/* ✅ 핵심 수정된 지난주 통계 집계 */
-function renderStats(){
-  statsArea.innerHTML="";
-  const counter={};
-
-  const monday=getMonday(-1);
-  for(let i=0;i<7;i++){
-    const d=new Date(monday);
-    d.setDate(monday.getDate()+i);
-    const key=d.toISOString().split("T")[0];
-
-    const list=dayTasks[key]||[];
-    list.forEach(t=>{
-      if(t.done){
-        counter[t.text]=(counter[t.text]||0)+1;
-      }
-    });
-  }
-
-  const keys=Object.keys(counter);
-  if(keys.length===0){
-    statsArea.innerHTML="<div style='color:#777'>지난주 데이터 없음</div>";
-    return;
-  }
-
-  keys.forEach(text=>{
-    const row=document.createElement("div");
-    row.style.marginBottom="12px";
-
-    const label=document.createElement("div");
-    label.textContent=text+" ("+counter[text]+"회)";
-
-    const barBox=document.createElement("div");
-    barBox.style.background="#222";
-    barBox.style.borderRadius="8px";
-
-    const bar=document.createElement("div");
-    bar.style.height="20px";
-    bar.style.width=(counter[text]*20)+"px";
-    bar.style.background="#4caf50";
-
-    barBox.appendChild(bar);
-    row.append(label,barBox);
-    statsArea.appendChild(row);
-  });
-}
-
-function renderTodos(){
-  listEl.innerHTML="";
-  todos.forEach((t,i)=>{
-    const li=document.createElement("li");
-    const txt=document.createElement("span");txt.textContent=t.text;
-
-    const actions=document.createElement("div");actions.className="actions";
-    const box=document.createElement("div");box.className="checkBox";
-    if(t.done){box.classList.add("checked");box.textContent="✓";}
-    const bar=document.createElement("span");bar.textContent="|";
-    const del=document.createElement("button");
-    del.textContent="❌";del.className="del-btn";
-
-    li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render();}
-    del.onclick=(e)=>{
-      e.stopPropagation();
-      if(!confirm("삭제하시겠습니까?"))return;
-      todos.splice(i,1);updateHistory();render();
-    }
-
-    actions.append(box,bar,del);
-    li.append(txt,actions);
-    listEl.appendChild(li);
-  });
-}
-
-function addTodo(){
-  const t=inputEl.value.trim();
-  if(!t)return;
-  todos.push({text:t,done:false});
-  inputEl.value="";
-  updateHistory();
-  render();
-}
-
-document.getElementById("addBtn").onclick=addTodo;
 
 function render(){
-  checkResets();
-  renderWeek(lastWeekBar,lastHistory,-1);
-  renderWeek(thisWeekBar,history,0);
-  renderTodos();
-  renderStats();
+ listEl.innerHTML="";
+
+ todos.forEach((t,i)=>{
+  const li=document.createElement("li");
+  li.draggable=true;
+
+  const txt=document.createElement("span");
+  txt.textContent=t.text;
+
+  const actions=document.createElement("div");
+  actions.className="actions";
+
+  const box=document.createElement("div");
+  box.className="checkBox";
+  if(t.done){box.classList.add("checked");box.textContent="✓";}
+
+  const up=document.createElement("button");
+  up.textContent="▲";
+  up.className="icon-btn";
+  up.onclick=(e)=>{
+    e.stopPropagation();
+    if(i===0)return;
+    [todos[i-1],todos[i]]=[todos[i],todos[i-1]];
+    save();render();
+  };
+
+  const down=document.createElement("button");
+  down.textContent="▼";
+  down.className="icon-btn";
+  down.onclick=(e)=>{
+    e.stopPropagation();
+    if(i===todos.length-1)return;
+    [todos[i+1],todos[i]]=[todos[i],todos[i+1]];
+    save();render();
+  };
+
+  const del=document.createElement("button");
+  del.textContent="❌";
+  del.className="icon-btn del-btn";
+  del.onclick=(e)=>{
+    e.stopPropagation();
+    if(!confirm("삭제하시겠습니까?"))return;
+    todos.splice(i,1);
+    save();render();
+  };
+
+  li.onclick=()=>{
+    todos[i].done=!todos[i].done;
+    save();render();
+  };
+
+  // 🔥 드래그 기능
+  li.addEventListener("dragstart",()=>{
+    li.classList.add("dragging");
+    li.dataset.index=i;
+  });
+  li.addEventListener("dragend",()=>{
+    li.classList.remove("dragging");
+  });
+  li.addEventListener("dragover",(e)=>{
+    e.preventDefault();
+    const dragging=document.querySelector(".dragging");
+    if(!dragging) return;
+    const from=+dragging.dataset.index;
+    const to=i;
+    const item=todos.splice(from,1)[0];
+    todos.splice(to,0,item);
+    save();render();
+  });
+
+  actions.append(box,up,down,del);
+  li.append(txt,actions);
+  listEl.appendChild(li);
+ });
 }
 
-updateHistory();
+document.getElementById("addBtn").onclick=()=>{
+ const t=inputEl.value.trim();
+ if(!t)return;
+ todos.push({text:t,done:false});
+ inputEl.value="";
+ save();render();
+};
+
 render();
 </script>
 </body>
