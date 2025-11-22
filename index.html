@@ -28,9 +28,28 @@ display:flex;align-items:center;justify-content:center;color:#4caf50;font-weight
 }
 .checked{border-color:#4caf50;background:#123f1a}
 
-.actions{display:flex;align-items:center;gap:6px}
+/* ▶ 우측 액션 */
+.actions{display:flex;align-items:center;gap:8px}
+.bar{color:#555}
+
+/* ▶ 위/아래 버튼 세로 배치 */
+.sortBtns{
+display:flex;
+flex-direction:column;
+gap:4px
+}
+.sort-btn{
+background:#333;
+border:none;
+color:#fff;
+border-radius:6px;
+padding:2px 6px;
+font-size:12px
+}
+
 .del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
 
+/* 그래프 */
 .chart-bar{
 height:20px;background:#009688;margin:6px 0;border-radius:6px
 }
@@ -122,6 +141,7 @@ function saveAll(){
 
 function checkResets(){
   const today=todayKey();
+
   if(lastDailyReset!==today){
     todos=todos.map(t=>({...t,done:false}));
     lastDailyReset=today;
@@ -167,7 +187,7 @@ function renderWeek(bar,dataStore,offset){
   }
 }
 
-/* ✅ 핵심 수정된 지난주 통계 집계 */
+/* ▶ 지난 주 통계 */
 function renderStats(){
   statsArea.innerHTML="";
   const counter={};
@@ -197,7 +217,7 @@ function renderStats(){
     row.style.marginBottom="12px";
 
     const label=document.createElement("div");
-    label.textContent=text+" ("+counter[text]+"회)";
+    label.textContent=`${text} (${counter[text]}회)`;
 
     const barBox=document.createElement("div");
     barBox.style.background="#222";
@@ -214,27 +234,64 @@ function renderStats(){
   });
 }
 
+/* ✅ 순서 변경 버튼 포함 렌더링 */
 function renderTodos(){
   listEl.innerHTML="";
   todos.forEach((t,i)=>{
     const li=document.createElement("li");
-    const txt=document.createElement("span");txt.textContent=t.text;
 
-    const actions=document.createElement("div");actions.className="actions";
-    const box=document.createElement("div");box.className="checkBox";
+    const txt=document.createElement("span");
+    txt.textContent=t.text;
+
+    const actions=document.createElement("div");
+    actions.className="actions";
+
+    const box=document.createElement("div");
+    box.className="checkBox";
     if(t.done){box.classList.add("checked");box.textContent="✓";}
-    const bar=document.createElement("span");bar.textContent="|";
+
+    const bar=document.createElement("span");
+    bar.className="bar";
+    bar.textContent="|";
+
+    /* ▲ ▼ 버튼 */
+    const sort=document.createElement("div");
+    sort.className="sortBtns";
+
+    const up=document.createElement("button");
+    up.textContent="▲";
+    up.className="sort-btn";
+    up.onclick=(e)=>{
+      e.stopPropagation();
+      if(i===0)return;
+      [todos[i-1],todos[i]]=[todos[i],todos[i-1]];
+      updateHistory(); render();
+    }
+
+    const down=document.createElement("button");
+    down.textContent="▼";
+    down.className="sort-btn";
+    down.onclick=(e)=>{
+      e.stopPropagation();
+      if(i===todos.length-1)return;
+      [todos[i+1],todos[i]]=[todos[i],todos[i+1]];
+      updateHistory(); render();
+    }
+
+    sort.append(up,down);
+
     const del=document.createElement("button");
-    del.textContent="❌";del.className="del-btn";
+    del.textContent="❌";
+    del.className="del-btn";
 
     li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render();}
     del.onclick=(e)=>{
       e.stopPropagation();
       if(!confirm("삭제하시겠습니까?"))return;
       todos.splice(i,1);updateHistory();render();
-    }
+    };
 
-    actions.append(box,bar,del);
+    actions.append(box,bar,sort,del);
     li.append(txt,actions);
     listEl.appendChild(li);
   });
@@ -264,4 +321,3 @@ render();
 </script>
 </body>
 </html>
-
