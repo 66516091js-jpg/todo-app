@@ -8,39 +8,40 @@
     body {
       font-family: Arial, sans-serif;
       background: #f2f2f2;
-      padding: 20px;
+      padding: 16px;
     }
     .todo-container {
-      max-width: 400px;
+      max-width: 480px;
       margin: auto;
       background: #fff;
-      padding: 20px;
-      border-radius: 12px;
+      padding: 16px;
+      border-radius: 16px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    h2 {
-      text-align: center;
+    h2 { text-align: center; }
+    .input-row {
+      display: flex;
+      gap: 8px;
     }
     input {
-      width: 70%;
-      padding: 10px;
+      flex: 1;
+      padding: 12px;
       font-size: 16px;
     }
     button {
-      padding: 10px;
+      padding: 12px;
       font-size: 16px;
-      margin-left: 5px;
     }
     ul {
       list-style: none;
       padding: 0;
-      margin-top: 15px;
+      margin-top: 16px;
     }
     li {
       background: #eee;
       margin-bottom: 8px;
-      padding: 10px;
-      border-radius: 8px;
+      padding: 12px;
+      border-radius: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -55,9 +56,9 @@
 
 <div class="todo-container">
   <h2>📋 나의 할 일</h2>
-  <div>
+  <div class="input-row">
     <input id="todoInput" placeholder="할 일을 입력하세요">
-    <button type="button" id="addBtn">추가</button>
+    <button id="addBtn" type="button">추가</button>
   </div>
   <ul id="todoList"></ul>
 </div>
@@ -75,7 +76,7 @@
 
   function renderTodos() {
     listEl.innerHTML = "";
-    todos.forEach((todo, index) => {
+    todos.forEach((todo, i) => {
       const li = document.createElement("li");
 
       const span = document.createElement("span");
@@ -83,24 +84,39 @@
       if (todo.done) span.classList.add("done");
 
       span.addEventListener("click", () => {
-        todos[index].done = !todos[index].done;
+        todos[i].done = !todos[i].done;
         saveTodos();
         renderTodos();
       });
 
-      const btn = document.createElement("button");
-      btn.textContent = "삭제";
-      btn.addEventListener("click", () => {
-        todos.splice(index, 1);
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "삭제";
+      delBtn.addEventListener("click", () => {
+        todos.splice(i, 1);
         saveTodos();
         renderTodos();
       });
 
       li.appendChild(span);
-      li.appendChild(btn);
+      li.appendChild(delBtn);
       listEl.appendChild(li);
     });
   }
 
   function addTodo() {
-    const text
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    todos.push({ text, done: false });
+    inputEl.value = "";
+    saveTodos();
+    renderTodos();
+  }
+
+  addBtn.addEventListener("click", addTodo);
+
+  renderTodos();
+</script>
+
+</body>
+</html>
