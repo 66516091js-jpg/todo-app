@@ -34,12 +34,13 @@ display:flex;align-items:center;justify-content:center;color:#4caf50;font-weight
 .checked{border-color:#4caf50;background:#123f1a}
 
 .actions{display:flex;align-items:center;gap:6px}
-
 .moveBox{display:flex;flex-direction:column;gap:2px}
+
 .arrowBtn{
 background:#333;border:none;color:white;border-radius:6px;
 padding:2px 6px;font-size:12px
 }
+
 .del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
 
 .modal{
@@ -54,27 +55,23 @@ background:#1e1e1e;padding:20px;border-radius:16px;width:80%
 <body>
 
 <div class="app">
+  <h2>지난 주 한 일</h2>
+  <div class="week" id="lastWeekBar"></div>
 
-<h2>지난 주 한 일</h2>
-<div class="week" id="lastWeekBar"></div>
+  <h2>이번 주 한 일</h2>
+  <div class="week" id="thisWeekBar"></div>
 
-<h2>이번 주 한 일</h2>
-<div class="week" id="thisWeekBar"></div>
-
-<h2>일일 할 일</h2>
-<div class="card">
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input id="todoInput" placeholder="할 일 입력"/>
-    <button id="addBtn">+</button>
+  <h2>일일 할 일</h2>
+  <div class="card">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="todoInput" placeholder="할 일 입력"/>
+      <button id="addBtn">+</button>
+    </div>
+    <ul id="todoList"></ul>
   </div>
-  <ul id="todoList"></ul>
 </div>
 
-<h2>지난 주 통계</h2>
-<div class="card" id="statsArea"></div>
-
-</div>
-
+<!-- ✅ 요일 상세 팝업 -->
 <div class="modal" id="modal">
   <div class="modalBox">
     <h3 id="modalTitle"></h3>
@@ -90,8 +87,6 @@ const lastWeekBar=document.getElementById("lastWeekBar");
 const thisWeekBar=document.getElementById("thisWeekBar");
 const listEl=document.getElementById("todoList");
 const inputEl=document.getElementById("todoInput");
-const statsArea=document.getElementById("statsArea");
-
 const modal=document.getElementById("modal");
 const modalTitle=document.getElementById("modalTitle");
 const modalList=document.getElementById("modalList");
@@ -104,10 +99,8 @@ let dayTasks=JSON.parse(localStorage.getItem("dayTasks")||"{}");
 let lastDailyReset=localStorage.getItem("lastDailyReset")||"";
 let lastWeeklyReset=localStorage.getItem("lastWeeklyReset")||"";
 
-/* ✅ 한국시간 직접 계산 (이중 보정 제거) */
-function now(){
-  return new Date(); // 시스템 시간 그대로
-}
+/* 시간 */
+function now(){ return new Date(); }
 
 function fiveAMKey(){
   const d=now();
@@ -119,11 +112,6 @@ function realDateKey(){
   return now().toISOString().split("T")[0];
 }
 
-function isMondayAfter5(){
-  const d=now();
-  return d.getDay()===1 && d.getHours()>=5;
-}
-
 function getMonday(offset=0){
   const d=now();
   const day=d.getDay();
@@ -132,6 +120,12 @@ function getMonday(offset=0){
   return d;
 }
 
+function isMondayAfter5(){
+  const d=now();
+  return d.getDay()===1 && d.getHours()>=5;
+}
+
+/* 저장 */
 function saveAll(){
   localStorage.setItem("todos",JSON.stringify(todos));
   localStorage.setItem("history",JSON.stringify(history));
@@ -141,6 +135,7 @@ function saveAll(){
   localStorage.setItem("lastWeeklyReset",lastWeeklyReset);
 }
 
+/* 리셋 */
 function checkResets(){
   const today=fiveAMKey();
 
@@ -148,16 +143,15 @@ function checkResets(){
     todos=todos.map(t=>({...t,done:false}));
     lastDailyReset=today;
   }
-
   if(isMondayAfter5() && lastWeeklyReset!==today){
     lastHistory={...history};
     history={};
     lastWeeklyReset=today;
   }
-
   saveAll();
 }
 
+/* 기록 */
 function updateHistory(){
   const key=realDateKey();
   history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
@@ -165,12 +159,14 @@ function updateHistory(){
   saveAll();
 }
 
+/* ✅ 요일 렌더 + 클릭 팝업 */
 function renderWeek(bar,dataStore,offset){
   bar.innerHTML="";
-  const m=getMonday(offset);
+  const monday=getMonday(offset);
+
   for(let i=0;i<7;i++){
-    const d=new Date(m);
-    d.setDate(m.getDate()+i);
+    const d=new Date(monday);
+    d.setDate(monday.getDate()+i);
     const key=d.toISOString().split("T")[0];
     const data=dataStore[key]||{done:0,total:0};
 
@@ -178,10 +174,49 @@ function renderWeek(bar,dataStore,offset){
     div.className="day";
     div.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
     if(data.done===data.total && data.total>0)div.classList.add("done");
+
+    /* ✅ 팝업 연결 */
+    div.onclick=()=>openDetail(key,days[i],offset);
+
     bar.appendChild(div);
   }
 }
 
+/* ✅ 팝업 내용 */
+function openDetail(key,label,offset){
+  modal.style.display="flex";
+  modalTitle.textContent=(offset===-1?"지난 주 ":"이번 주 ")+label+"요일";
+
+  modalList.innerHTML="";
+  const tasks=dayTasks[key]||[];
+
+  if(tasks.length===0){
+    modalList.innerHTML="<li>기록 없음</li>";
+    return;
+  }
+
+  tasks.forEach(t=>{
+    const li=document.createElement("li");
+    li.textContent=t.text+"  "+(t.done?"✅ 완료":"❌ 미완료");
+    modalList.appendChild(li);
+  });
+}
+
+function closeModal(){ modal.style.display="none"; }
+
+/* 이동 */
+function moveUp(i){
+  if(i===0)return;
+  [todos[i-1],todos[i]]=[todos[i],todos[i-1]];
+  updateHistory();render();
+}
+function moveDown(i){
+  if(i===todos.length-1)return;
+  [todos[i+1],todos[i]]=[todos[i],todos[i+1]];
+  updateHistory();render();
+}
+
+/* 투두 렌더 */
 function renderTodos(){
   listEl.innerHTML="";
   todos.forEach((t,i)=>{
@@ -200,15 +235,20 @@ function renderTodos(){
     moveBox.className="moveBox";
 
     const up=document.createElement("button");
-    up.textContent="▲";up.className="arrowBtn";
-    up.onclick=(e)=>{e.stopPropagation();if(i>0){[todos[i-1],todos[i]]=[todos[i],todos[i-1]];updateHistory();render();}};
+    up.textContent="▲";
+    up.className="arrowBtn";
+    up.onclick=(e)=>{e.stopPropagation();moveUp(i)};
 
     const down=document.createElement("button");
-    down.textContent="▼";down.className="arrowBtn";
-    down.onclick=(e)=>{e.stopPropagation();if(i<todos.length-1){[todos[i+1],todos[i]]=[todos[i],todos[i+1]];updateHistory();render();}};
+    down.textContent="▼";
+    down.className="arrowBtn";
+    down.onclick=(e)=>{e.stopPropagation();moveDown(i)};
+
+    moveBox.append(up,down);
 
     const del=document.createElement("button");
-    del.textContent="❌";del.className="del-btn";
+    del.textContent="❌";
+    del.className="del-btn";
     del.onclick=(e)=>{
       e.stopPropagation();
       if(confirm("삭제하시겠습니까?")){
@@ -216,25 +256,18 @@ function renderTodos(){
       }
     };
 
-    moveBox.append(up,down);
-    actions.append(box,moveBox,del);
-    li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render();};
+    li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render()};
 
+    actions.append(box,moveBox,del);
     li.append(txt,actions);
     listEl.appendChild(li);
   });
 }
 
-function render(){
-  checkResets();
-  renderWeek(lastWeekBar,lastHistory,-1);
-  renderWeek(thisWeekBar,history,0);
-  renderTodos();
-}
-
+/* 추가 */
 function addTodo(){
   const t=inputEl.value.trim();
-  if(!t)return;
+  if(!t) return;
   todos.push({text:t,done:false});
   inputEl.value="";
   updateHistory();
@@ -242,6 +275,14 @@ function addTodo(){
 }
 
 document.getElementById("addBtn").onclick=addTodo;
+
+/* 전체 렌더 */
+function render(){
+  checkResets();
+  renderWeek(lastWeekBar,lastHistory,-1);
+  renderWeek(thisWeekBar,history,0);
+  renderTodos();
+}
 
 updateHistory();
 render();
