@@ -1,6 +1,6 @@
 <script>
-  const listEl = document.getElementById("list");
-  const inputEl = document.getElementById("input");
+const listEl = document.getElementById("todoList");
+const inputEl = document.getElementById("todoInput");
 
   let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
@@ -48,3 +48,4 @@
 
   renderTodos();
 </script>
+
