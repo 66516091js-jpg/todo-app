@@ -2,7 +2,6 @@
   const listEl = document.getElementById("list");
   const inputEl = document.getElementById("input");
 
-  // 저장된 데이터 불러오기
   let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
   function saveTodos() {
@@ -40,12 +39,12 @@
   function addTodo() {
     const text = inputEl.value.trim();
     if (!text) return;
+
     todos.push({ text, done: false });
     inputEl.value = "";
     saveTodos();
     renderTodos();
   }
 
-  // 페이지 열릴 때 자동 실행
   renderTodos();
 </script>
