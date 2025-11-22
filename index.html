@@ -8,7 +8,6 @@
 <style>
 body { margin:0; background:#000; font-family:Arial; color:white; }
 .app { max-width:480px; margin:auto; background:#121212; padding:16px; }
-
 .header { font-size:22px; font-weight:bold; margin-bottom:10px; }
 
 .week-bar { display:flex; gap:4px; margin-bottom:12px; }
@@ -23,17 +22,9 @@ body { margin:0; background:#000; font-family:Arial; color:white; }
 }
 .day.done { background:#1e88e5; }
 
-.card {
-  background:#1e1e1e;
-  border-radius:18px;
-  padding:14px;
-}
+.card { background:#1e1e1e; border-radius:18px; padding:14px; }
+.input-row { display:flex; gap:8px; margin-bottom:12px; }
 
-.input-row {
-  display:flex;
-  gap:8px;
-  margin-bottom:12px;
-}
 input {
   flex:1;
   padding:12px;
@@ -42,6 +33,7 @@ input {
   background:#2a2a2a;
   color:white;
 }
+
 button {
   padding:12px 14px;
   border-radius:10px;
@@ -66,9 +58,10 @@ li {
   background:transparent;
   border:none;
   color:#ff5f5f;
+  font-size:16px;
 }
 
-/* ✅ 팝업 */
+/* 팝업 */
 .modal {
   display:none;
   position:fixed;
@@ -116,7 +109,6 @@ li {
   </div>
 </div>
 
-<!-- ✅ 팝업 -->
 <div class="modal" id="dayModal">
   <div class="modal-box">
     <h3 id="modalTitle"></h3>
@@ -198,8 +190,8 @@ function renderWeekBar() {
 function openDayDetail(key, label) {
   modal.style.display = "flex";
   modalTitle.textContent = `${label}요일 상세`;
-
   modalList.innerHTML = "";
+
   const tasks = dayTasks[key] || [];
 
   if (tasks.length === 0) {
@@ -221,11 +213,23 @@ function closeModal() {
 
 function renderTodos() {
   listEl.innerHTML = "";
+
   todos.forEach((t,i)=>{
     const li = document.createElement("li");
 
     const span = document.createElement("span");
     span.textContent = t.text;
+
+    const rightBox = document.createElement("div");
+    rightBox.style.display = "flex";
+    rightBox.style.alignItems = "center";
+    rightBox.style.gap = "6px";
+
+    const check = document.createElement("span");
+    check.textContent = t.done ? "✅" : "";
+
+    const sep = document.createElement("span");
+    sep.textContent = "|";
 
     const del = document.createElement("button");
     del.className = "del-btn";
@@ -247,7 +251,8 @@ function renderTodos() {
       renderWeekBar();
     };
 
-    li.append(span,del);
+    rightBox.append(check, sep, del);
+    li.append(span, rightBox);
     listEl.appendChild(li);
   });
 }
@@ -264,7 +269,6 @@ function addTodo() {
 
 addBtn.onclick = addTodo;
 
-// 최초 실행
 updateHistory();
 renderTodos();
 renderWeekBar();
