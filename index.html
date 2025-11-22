@@ -1,6 +1,8 @@
 <script>
-const listEl = document.getElementById("todoList");
-const inputEl = document.getElementById("todoInput");
+window.onload = function() {
+
+  const listEl = document.getElementById("todoList");
+  const inputEl = document.getElementById("todoInput");
 
   let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
@@ -12,7 +14,6 @@ const inputEl = document.getElementById("todoInput");
     listEl.innerHTML = "";
     todos.forEach((todo, index) => {
       const li = document.createElement("li");
-
       const span = document.createElement("span");
       span.textContent = todo.text;
       if (todo.done) span.classList.add("done");
@@ -39,7 +40,6 @@ const inputEl = document.getElementById("todoInput");
   function addTodo() {
     const text = inputEl.value.trim();
     if (!text) return;
-
     todos.push({ text, done: false });
     inputEl.value = "";
     saveTodos();
@@ -47,5 +47,6 @@ const inputEl = document.getElementById("todoInput");
   }
 
   renderTodos();
-</script>
 
+};   <!-- 👈 이 줄 꼭 추가 -->
+</script>
