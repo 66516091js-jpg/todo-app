@@ -11,10 +11,7 @@ body{margin:0;background:#000;color:#fff;font-family:sans-serif}
 h2{font-size:18px;margin:16px 0 8px}
 
 .week{display:flex;gap:4px;margin-bottom:6px}
-.day{
-  flex:1;background:#1e1e1e;padding:6px 0;border-radius:10px;
-  text-align:center;font-size:12px;cursor:pointer
-}
+.day{flex:1;background:#1e1e1e;padding:6px 0;border-radius:10px;text-align:center;font-size:12px;cursor:pointer}
 .day.done{background:#1e88e5}
 
 .card{background:#1e1e1e;border-radius:16px;padding:14px;margin-top:6px}
@@ -23,10 +20,7 @@ input{flex:1;padding:12px;border:none;border-radius:10px;background:#2a2a2a;colo
 button{background:#1877f2;border:none;color:white;border-radius:10px;padding:12px}
 
 ul{list-style:none;padding:0;margin:0}
-li{
-background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;
-display:flex;justify-content:space-between;align-items:center;cursor:pointer
-}
+li{background:#2a2a2a;margin-bottom:8px;padding:10px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 
 .checkBox{
 width:20px;height:20px;border:2px solid #555;border-radius:6px;
@@ -35,13 +29,6 @@ display:flex;align-items:center;justify-content:center;color:#4caf50;font-weight
 .checked{border-color:#4caf50;background:#123f1a}
 
 .actions{display:flex;align-items:center;gap:6px}
-.moveBox{display:flex;flex-direction:column;gap:2px}
-
-.arrowBtn{
-background:#333;border:none;color:white;border-radius:6px;
-padding:2px 6px;font-size:12px
-}
-
 .del-btn{background:transparent;color:#ff5f5f;font-size:16px;border:none}
 
 .chart-bar{height:20px;background:#009688;margin:6px 0;border-radius:6px}
@@ -50,15 +37,12 @@ padding:2px 6px;font-size:12px
 position:fixed;inset:0;background:rgba(0,0,0,.8);
 display:none;justify-content:center;align-items:center;z-index:999
 }
-.modalBox{
-background:#1e1e1e;padding:20px;border-radius:16px;width:80%
-}
+.modalBox{background:#1e1e1e;padding:20px;border-radius:16px;width:80%}
 </style>
 </head>
-
 <body>
-<div class="app">
 
+<div class="app">
 <h2>지난 주 한 일</h2>
 <div class="week" id="lastWeekBar"></div>
 
@@ -76,7 +60,6 @@ background:#1e1e1e;padding:20px;border-radius:16px;width:80%
 
 <h2>지난 주 통계</h2>
 <div class="card" id="statsArea"></div>
-
 </div>
 
 <div class="modal" id="modal">
@@ -108,33 +91,28 @@ let dayTasks=JSON.parse(localStorage.getItem("dayTasks")||"{}");
 let lastDailyReset=localStorage.getItem("lastDailyReset")||"";
 let lastWeeklyReset=localStorage.getItem("lastWeeklyReset")||"";
 
-/* 시간 */
-function now(){return new Date()}
+function nowKST(){ return new Date(Date.now()+9*60*60*1000); }
 
-function fiveAMKey(){
-  const d=now();
+function todayKey(){
+  const d=nowKST();
   if(d.getHours()<5)d.setDate(d.getDate()-1);
   return d.toISOString().split("T")[0];
 }
 
-function realKey(){
-  return now().toISOString().split("T")[0];
-}
-
-function isMondayAfter5(){
-  const d=now();
-  return d.getDay()===1&&d.getHours()>=5;
-}
-
 function getMonday(offset=0){
-  const d=now();
+  const d=nowKST();
   const day=d.getDay();
   const diff=(day===0?-6:1)-day;
   d.setDate(d.getDate()+diff+(offset*7));
   return d;
 }
 
-/* 저장 */
+function isMonday(){
+  const d=nowKST();
+  if(d.getHours()<5)d.setDate(d.getDate()-1);
+  return d.getDay()===1;
+}
+
 function saveAll(){
   localStorage.setItem("todos",JSON.stringify(todos));
   localStorage.setItem("history",JSON.stringify(history));
@@ -144,42 +122,51 @@ function saveAll(){
   localStorage.setItem("lastWeeklyReset",lastWeeklyReset);
 }
 
-/* 리셋 */
-function checkResets(){
-  const today=fiveAMKey();
+function resetCheckOnly(){
+  const today=todayKey();
   if(lastDailyReset!==today){
-    todos=todos.map(t=>({...t,done:false}));
+    todos = todos.map(t=>({...t,done:false}));
     lastDailyReset=today;
+    saveAll();
   }
-  if(isMondayAfter5()&&lastWeeklyReset!==today){
+
+  if(isMonday() && lastWeeklyReset!==today){
     lastHistory={...history};
     history={};
     lastWeeklyReset=today;
+    saveAll();
+  }
+}
+
+function updateHistory(){
+  const key=todayKey();
+  history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
+
+  if(!dayTasks[key]) {
+    dayTasks[key] = todos.map(t=>({...t}));
+  } else {
+    // ✅ 이미 저장된 날은 덮어쓰지 않음
+    const saved = dayTasks[key];
+    todos.forEach(t=>{
+      const exist=saved.find(x=>x.text===t.text);
+      if(exist){ exist.done=t.done; }
+      else{ saved.push({...t}); }
+    });
   }
   saveAll();
 }
 
-/* 기록 */
-function updateHistory(){
-  const key=realKey();
-  history[key]={done:todos.filter(t=>t.done).length,total:todos.length};
-  dayTasks[key]=todos.map(t=>({...t}));
-  saveAll();
-}
-
-/* 주간 + 팝업 */
 function renderWeek(bar,store,offset){
   bar.innerHTML="";
-  const mon=getMonday(offset);
+  const m=getMonday(offset);
   for(let i=0;i<7;i++){
-    const d=new Date(mon);d.setDate(mon.getDate()+i);
+    const d=new Date(m);d.setDate(m.getDate()+i);
     const key=d.toISOString().split("T")[0];
     const data=store[key]||{done:0,total:0};
 
     const div=document.createElement("div");
     div.className="day";
     div.innerHTML=`${days[i]}<br>${data.done}/${data.total}`;
-    if(data.done===data.total&&data.total>0)div.classList.add("done");
     div.onclick=()=>openDetail(key,days[i],offset);
     bar.appendChild(div);
   }
@@ -189,28 +176,34 @@ function openDetail(key,label,offset){
   modal.style.display="flex";
   modalTitle.textContent=(offset===-1?"지난 주 ":"이번 주 ")+label+"요일";
   modalList.innerHTML="";
+
   const list=dayTasks[key]||[];
-  if(list.length===0){modalList.innerHTML="<li>기록 없음</li>";return;}
+  if(list.length===0){
+    modalList.innerHTML="<li>기록 없음</li>";return;
+  }
   list.forEach(t=>{
     const li=document.createElement("li");
-    li.textContent=t.text+" "+(t.done?"✅":"❌");
+    li.textContent=t.text+(t.done?" ✅":" ❌");
     modalList.appendChild(li);
   });
 }
-function closeModal(){modal.style.display="none"}
 
-/* 통계 그래프 */
+function closeModal(){modal.style.display="none";}
+
 function renderStats(){
   statsArea.innerHTML="";
   const counter={};
 
-  const mon=getMonday(-1);
+  const monday=getMonday(-1);
   for(let i=0;i<7;i++){
-    const d=new Date(mon);d.setDate(mon.getDate()+i);
+    const d=new Date(monday);d.setDate(monday.getDate()+i);
     const key=d.toISOString().split("T")[0];
     const list=dayTasks[key]||[];
+
     list.forEach(t=>{
-      if(t.done)counter[t.text]=(counter[t.text]||0)+1;
+      if(t.done){
+        counter[t.text]=(counter[t.text]||0)+1;
+      }
     });
   }
 
@@ -222,35 +215,24 @@ function renderStats(){
 
   keys.forEach(text=>{
     const row=document.createElement("div");
-    row.style.marginBottom="10px";
+    row.style.marginBottom="12px";
 
     const label=document.createElement("div");
-    label.textContent=text+" ("+counter[text]+"회)";
+    label.textContent=`${text} (${counter[text]}회)`;
 
-    const bg=document.createElement("div");
-    bg.style.background="#222";bg.style.borderRadius="6px";
+    const barBox=document.createElement("div");
+    barBox.style.background="#222";
+    barBox.style.borderRadius="8px";
 
     const bar=document.createElement("div");
     bar.style.height="20px";
     bar.style.width=(counter[text]*20)+"px";
-    bar.style.background="#009688";
+    bar.style.background="#4caf50";
 
-    bg.appendChild(bar);
-    row.append(label,bg);
+    barBox.appendChild(bar);
+    row.append(label,barBox);
     statsArea.appendChild(row);
   });
-}
-
-/* 할일 */
-function moveUp(i){
-  if(i===0)return;
-  [todos[i-1],todos[i]]=[todos[i],todos[i-1]];
-  updateHistory();render();
-}
-function moveDown(i){
-  if(i===todos.length-1)return;
-  [todos[i+1],todos[i]]=[todos[i],todos[i+1]];
-  updateHistory();render();
 }
 
 function renderTodos(){
@@ -260,58 +242,41 @@ function renderTodos(){
     const txt=document.createElement("span");txt.textContent=t.text;
 
     const actions=document.createElement("div");actions.className="actions";
-
-    const box=document.createElement("div");
-    box.className="checkBox";
-    if(t.done){box.classList.add("checked");box.textContent="✓"}
-
-    const move=document.createElement("div");
-    move.className="moveBox";
-
-    const up=document.createElement("button");
-    up.textContent="▲";up.className="arrowBtn";
-    up.onclick=(e)=>{e.stopPropagation();moveUp(i)}
-
-    const down=document.createElement("button");
-    down.textContent="▼";down.className="arrowBtn";
-    down.onclick=(e)=>{e.stopPropagation();moveDown(i)}
+    const box=document.createElement("div");box.className="checkBox";
+    if(t.done){box.classList.add("checked");box.textContent="✓";}
 
     const del=document.createElement("button");
     del.textContent="❌";del.className="del-btn";
+
+    li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render();}
     del.onclick=(e)=>{
       e.stopPropagation();
-      if(confirm("삭제하시겠습니까?")){
-        todos.splice(i,1);updateHistory();render()
-      }
-    };
+      if(!confirm("삭제하시겠습니까?"))return;
+      todos.splice(i,1);updateHistory();render();
+    }
 
-    li.onclick=()=>{todos[i].done=!todos[i].done;updateHistory();render()}
-
-    move.append(up,down);
-    actions.append(box,move,del);
+    actions.append(box,del);
     li.append(txt,actions);
     listEl.appendChild(li);
   });
 }
 
-function addTodo(){
+document.getElementById("addBtn").onclick=()=>{
   const t=inputEl.value.trim();
   if(!t)return;
   todos.push({text:t,done:false});
   inputEl.value="";
   updateHistory();render();
-}
-document.getElementById("addBtn").onclick=addTodo;
+};
 
 function render(){
-  checkResets();
+  resetCheckOnly();
   renderWeek(lastWeekBar,lastHistory,-1);
   renderWeek(thisWeekBar,history,0);
   renderTodos();
   renderStats();
 }
 
-updateHistory();
 render();
 </script>
 </body>
